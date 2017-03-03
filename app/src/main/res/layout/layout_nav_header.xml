@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="200dp"
+    android:background="@color/color_233944"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/iv_drawer_header_logo"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/img_logo"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="5dp"
+            android:text="@string/text_tv_auth_etrips_logo_title"
+            android:textColor="@android:color/white"
+            android:textSize="32sp"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_drawer_header_user_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:padding="10dp"
+        android:textColor="@android:color/white"/>
+
+</FrameLayout>

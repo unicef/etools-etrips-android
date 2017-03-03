@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:animateLayoutChanges="true"
+    android:clickable="true"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_trip_action_points_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="5dp"
+            android:paddingTop="5dp" />
+
+        <org.unicef.etools.etrips.util.widget.EmptyState
+            android:id="@+id/es_trip_actions_points"
+            style="@style/ActionPointsEmptyState" />
+
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/btn_add_action_point"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:text="@string/text_btn_add_action_point"
+        android:textAllCaps="true"
+        android:textSize="14sp"
+        android:theme="@style/Button" />
+
+</LinearLayout>

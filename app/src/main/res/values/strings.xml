@@ -1,0 +1,167 @@
+<resources>
+    <!--id-->
+    <string name="hockey_app_id">7f281e49d10444ec9f21f64fd1b8404c</string>
+    <string name="hockey_app_secret">b617a3e09f314d808bda33193c487e23</string>
+    <string name="hockey_app_id_staging">6a410d97b74f418f9b064e1c132d8cc8</string>
+    <string name="hockey_app_secret_staging">8586501bfbb73170bc29afeac030c440</string>
+
+    <!--main-->
+    <string name="app_name">eTrips</string>
+
+    <!--screens-->
+    <string name="screen_name_cost_assignment">Cost Assignment</string>
+    <string name="screen_name_travel_itinerary">Travel Itinerary</string>
+    <string name="screen_name_language">Select Language</string>
+    <string name="screen_report_photo">Photo</string>
+    <string name="screen_name_add_action_point">Add Action Point</string>
+    <string name="screen_name_my_action_point">My Action Point</string>
+    <string name="screen_name_travel_activity">Travel Activities</string>
+    <string name="screen_name_user_static_activity">Users</string>
+
+    <!--util-->
+    <string name="msg_network_connection_error">No Internet connection</string>
+    <string name="msg_page_not_found">404 Page not found</string>
+    <string name="msg_unknown_error">Unknown error</string>
+    <string name="msg_bad_request">Bad request</string>
+    <string name="msg_not_authorized">User not authorized</string>
+    <string name="msg_connection_error">Connection error</string>
+    <string name="msg_navigation_drawer_open">Open navigation drawer</string>
+    <string name="msg_navigation_drawer_close">Close navigation drawer</string>
+
+    <!--Navigation drawer menu items-->
+    <string name="text_nav_trips">My Trips</string>
+    <string name="text_nav_supervised">Supervised</string>
+    <string name="text_nav_action_points">My Action Points</string>
+    <string name="text_nav_languages">Languages</string>
+    <string name="text_nav_profile">Profile</string>
+
+    <!--edt hints-->
+    <string name="hint_tiet_auth_email">EMAIL</string>
+    <string name="hint_tiet_auth_pass">PASSWORD</string>
+    <string name="hint_ets_auth_languages">LANGUAGE</string>
+    <string name="hint_edt_report_text">Report</string>
+    <string name="hint_edt_action_point_description">Describe action point</string>
+    <string name="hint_edt_action_point_actions_taken">-</string>
+
+    <!--tv hints-->
+    <string name="hint_tv_action_point_person_responsible">Select from list</string>
+    <string name="hint_tv_action_point_status">Select from list</string>
+    <string name="hint_tv_action_point_date">Not Set</string>
+
+    <!--edt errors-->
+    <string name="msg_edt_error_mail">Enter email</string>
+    <string name="msg_edt_pass_error">Enter password</string>
+    <string name="msg_edt_description_error">Enter description</string>
+    <string name="msg_edt_report_error">Enter report</string>
+
+    <!--other-->
+    <string name="dialog_text_logout">Are you sure you want to logout?</string>
+    <string name="dialog_text_take_from_camera">Take photo from Camera</string>
+    <string name="dialog_text_take_from_gallery">Take photo from Gallery</string>
+    <string name="dialog_text_cancel">Cancel</string>
+    <string name="dialog_text_title_status">Status</string>
+
+    <!--tabs-->
+    <string name="tab_text_trip">Trip</string>
+    <string name="tab_text_report">Report</string>
+    <string name="tab_text_action_points">Action Points</string>
+
+    <!--screen and other strings-->
+    <string name="text_tv_auth_etrips_logo_title">eTrips</string>
+    <string name="text_tv_auth_etrips_logo_description">Mobile App for eTools</string>
+    <string name="text_btn_auth_sign">Sign in</string>
+    <string name="text_tv_report_photos">Photos</string>
+    <string name="text_tv_report_photos_description">The photos below will be uploaded when the trip
+        report is submitted.
+    </string>
+    <string name="text_btn_report_submit">Submit report</string>
+    <string name="text_tv_trip_traveler">Traveler</string>
+    <string name="text_tv_trip_superviser">Supervisor</string>
+    <string name="text_tv_trip_date">Dates</string>
+    <string name="text_tv_trip_purpose">Purpose of travel</string>
+    <string name="text_tv_trip_status">Status</string>
+    <string name="text_ll_trip_travel_activity">Travel Activities</string>
+    <string name="text_ll_trip_itinerary">Travel Itinerary</string>
+    <string name="text_tv_trip_cost_assignment_amount">Cost Assignment</string>
+    <string name="text_tv_trip_cost_summary">Cost Summary</string>
+    <string name="text_tv_trip_dsa_total">DSA Total</string>
+    <string name="text_tv_trip_expense_total">Expense Total</string>
+    <string name="text_tv_trip_deducations_total">Deductions Total</string>
+    <string name="text_tv_trip_total_cost">Total cost:</string>
+    <string name="text_btn_trip_submit">Submit</string>
+    <string name="text_btn_trip_approve">Approve</string>
+    <string name="text_btn_trip_reject">Reject</string>
+    <string name="text_tv_settings_language">Language</string>
+    <string name="text_tv_settings_logout">Logout</string>
+    <string name="text_tv_in_development">In development</string>
+    <string name="text_cost_assignmetn_amount">(%1$s)</string>
+    <string name="text_itinerary_amount">(%1$s)</string>
+    <string name="text_travel_amount">(%1$s)</string>
+    <string name="text_activity_amount">(%1$s)</string>
+    <string name="text_tv_ca_wbs">WBS</string>
+    <string name="text_tv_ca_grant">Grant</string>
+    <string name="text_tv_ca_fund">Fund</string>
+    <string name="text_tv_ca_share">Share</string>
+    <string name="text_tv_ti_from">From</string>
+    <string name="text_tv_act_travel_type">Travel Type</string>
+    <string name="text_tv_act_partner">Partner</string>
+    <string name="text_tv_act_partnership">Partnership</string>
+    <string name="text_tv_ti_to">To</string>
+    <string name="text_tv_ti_departing">Departing</string>
+    <string name="text_tv_ti_arriving">Arriving</string>
+    <string name="text_tv_ti_mode">Mode of travel</string>
+    <string name="text_edt_report_photo_description">Description</string>
+    <string name="text_btn_report_photo_save">Save</string>
+    <string name="text_btn_report_add_photo">Add</string>
+    <string name="text_btn_add_action_point">Add action points</string>
+    <string name="text_due_date">Due %s</string>
+    <string name="text_assigned_by">Assigned by %s</string>
+    <string name="text_cost_currency" formatted="false">%s %s</string>
+    <string name="text_chb_act_primary_traveler">Primary Traveler</string>
+    <string name="text_tv_profile_username">Username</string>
+    <string name="text_tv_profile_country">Country</string>
+    <string name="text_tv_profile_office">Office</string>
+    <string name="text_tv_profile_position">Position</string>
+    <string name="text_tv_assigned_by_unknown">Unknown</string>
+    <string name="text_tv_action_point_person_responsible_title">Person Responsible</string>
+    <string name="text_tv_action_point_description_title">Description</string>
+    <string name="text_tv_action_point_actions_taken_title">Actions Taken</string>
+    <string name="text_tv_action_point_due_date_title">Due Date</string>
+    <string name="text_tv_action_point_status_title">Status</string>
+    <string name="text_tv_action_point_completed_date_title">Completed Date</string>
+    <string name="text_tv_action_point_follow_up_title">Follow up</string>
+    <string name="text_btn_action_point_add">Add action point</string>
+    <string name="text_btn_action_point_save">Save</string>
+
+    <!--empty state-->
+    <string name="text_tv_empty_state_trips_title">You don\'t have any Trips.</string>
+    <string name="text_tv_empty_state_trips_description">All your trips will be displayed here.
+    </string>
+    <string name="text_tv_empty_state_supervised_title">You\'re not currently supervising any
+        trips.
+    </string>
+    <string name="text_tv_empty_state_supervised_description">Trips you\'re supervising will be
+        displayed here when created.
+    </string>
+    <string name="text_tv_empty_state_action_points_title">You don\'t have any Action Points.
+    </string>
+    <string name="text_tv_empty_state_action_points_description">Your Action Points will be
+        displayed here.
+    </string>
+    <string name="text_tv_empty_state_general_title">Something going wrong!</string>
+    <string name="text_tv_empty_state_general_description">Please, check your internet connection.
+    </string>
+    <string name="text_tv_report_draft_label">This report is not submitted, it was saved as draft.
+    </string>
+    <string name="text_no_report">No report</string>
+    <string name="text_rn">Rejection notes (optional)</string>
+    <string name="draft">Draft</string>
+
+    <!--list of languages -->
+    <string-array name="languages">
+        <item>English (Great Britain)</item>
+        <item>Français</item>
+        <item>Español</item>
+    </string-array>
+
+</resources>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group
+        android:id="@+id/menu_top"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/nav_trips"
+            android:icon="@drawable/ic_trips_white"
+            android:title="@string/text_nav_trips"/>
+
+        <item
+            android:id="@+id/nav_supervised"
+            android:icon="@drawable/ic_beenhere_white_24dp"
+            android:title="@string/text_nav_supervised"/>
+
+        <item
+            android:id="@+id/nav_action_points"
+            android:icon="@drawable/ic_flag_white_24dp"
+            android:title="@string/text_nav_action_points"/>
+
+    </group>
+
+    <group
+        android:id="@+id/menu_bottom"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_person_white"
+            android:title="@string/text_nav_profile"/>
+
+    </group>
+
+</menu>

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <include layout="@layout/include_toolbar" />
+
+    </android.support.design.widget.AppBarLayout>
+
+    <android.support.v4.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/color_ffffff"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/text_tv_action_point_person_responsible_title"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_action_point_person_responsible"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:drawableRight="@drawable/ic_chevron_right"
+                    android:gravity="center_vertical"
+                    android:text="@string/hint_tv_action_point_person_responsible"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:text="@string/text_tv_action_point_description_title"
+                    android:textSize="12sp" />
+
+                <EditText
+                    android:maxLength="250"
+                    android:id="@+id/edt_action_point_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:hint="@string/hint_edt_action_point_description"
+                    android:textSize="16sp"
+                    android:theme="@style/EditText" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:text="@string/text_tv_action_point_due_date_title"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_action_point_due_date"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:drawableLeft="@drawable/ic_action_point_calendar"
+                    android:drawablePadding="11dp"
+                    android:drawableRight="@drawable/ic_action_point_edit"
+                    android:gravity="bottom"
+                    android:text="@string/hint_tv_action_point_date"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:text="@string/text_tv_action_point_status_title"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_action_point_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/hint_tv_action_point_status"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:text="@string/text_tv_action_point_actions_taken_title"
+                    android:textSize="12sp" />
+
+                <EditText
+                    android:id="@+id/edt_action_point_actions_taken"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:hint="@string/hint_edt_action_point_actions_taken"
+                    android:textSize="16sp"
+                    android:theme="@style/EditText" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:text="@string/text_tv_action_point_completed_date_title"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_action_point_completed_date"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:drawableLeft="@drawable/ic_action_point_calendar"
+                    android:drawablePadding="11dp"
+                    android:drawableRight="@drawable/ic_action_point_edit"
+                    android:gravity="bottom"
+                    android:text="@string/hint_tv_action_point_date"
+                    android:textSize="16sp" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="45dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="left|center_vertical"
+                        android:text="@string/text_tv_action_point_follow_up_title"
+                        android:textSize="16sp" />
+
+                    <android.support.v7.widget.SwitchCompat
+                        android:id="@+id/swc_action_point_follow_up"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="right"
+                        android:theme="@style/Switch" />
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_action_point_execute_operation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:theme="@style/Button" />
+
+        </LinearLayout>
+
+    </android.support.v4.widget.NestedScrollView>
+
+</android.support.design.widget.CoordinatorLayout>

@@ -1,0 +1,121 @@
+<resources>
+
+    <style name="BaseTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimaryDark">@color/color_007ccf</item>
+        <item name="colorPrimary">@color/color_0099ff</item>
+        <item name="colorAccent">@color/color_57bcff</item>
+        <item name="colorControlNormal">@android:color/white</item>
+        <item name="colorControlActivated">@android:color/white</item>
+        <item name="alertDialogTheme">@style/AlertDialog</item>
+    </style>
+
+    <style name="AppTheme" parent="BaseTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="MainTheme" parent="BaseTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/color_EEEEEE</item>
+    </style>
+
+    <style name="AdditionalScreensTheme" parent="BaseTheme">
+        <item name="android:windowBackground">@color/color_EEEEEE</item>
+    </style>
+
+    <style name="AuthTheme" parent="BaseTheme">
+    </style>
+
+    <style name="PhotoPreviewTheme" parent="BaseTheme">
+        <item name="android:windowBackground">@color/color_EEEEEE</item>
+    </style>
+
+    <style name="SplashTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/layer_splash</item>
+    </style>
+
+    <style name="Toolbar" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/color_0099ff</item>
+        <item name="colorPrimaryDark">@color/color_0099ff</item>
+        <item name="colorControlNormal">@android:color/white</item>
+    </style>
+
+    <style name="AlertDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorPrimaryDark">@color/color_0099ff</item>
+        <item name="colorPrimary">@color/color_0099ff</item>
+        <item name="colorAccent">@color/color_0099ff</item>
+        <item name="colorControlNormal">@color/color_0099ff</item>
+    </style>
+
+    <style name="ProgressBar" parent="Widget.AppCompat.ProgressBar">
+        <item name="colorAccent">@color/color_0099ff</item>
+    </style>
+
+    <style name="TabLayout" parent="Widget.Design.TabLayout">
+        <item name="tabIndicatorColor">@color/color_0099ff</item>
+        <item name="tabTextAppearance">@style/TabLayout.TextAppearance</item>
+    </style>
+
+    <style name="TabLayout.TextAppearance" parent="TextAppearance.Design.Tab">
+        <item name="textAllCaps">true</item>
+    </style>
+
+    <style name="EditText" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorAccent">@color/color_747474</item>
+        <item name="colorControlNormal">@color/color_747474</item>
+    </style>
+
+    <style name="Button" parent="Widget.AppCompat.Button.Colored">
+        <item name="colorButtonNormal">@color/color_0099ff</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
+    <style name="CheckBox" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorAccent">@color/color_0099ff</item>
+        <item name="android:textColorSecondary">@color/color_747474</item>
+    </style>
+
+    <style name="Switch" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorControlActivated">@color/color_0099ff</item>
+        <item name="colorSwitchThumbNormal">@color/color_747474</item>
+    </style>
+
+    <style name="DatePicker" parent="Theme.AppCompat.Light.Dialog">
+        <item name="colorAccent">@color/color_0099ff</item>
+    </style>
+
+    <style name="BaseEmptyState">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:paddingLeft">30dp</item>
+        <item name="android:paddingRight">30dp</item>
+        <item name="android:visibility">gone</item>
+    </style>
+
+    <style name="ActionPointsEmptyState" parent="BaseEmptyState">
+        <item name="es_icon">@drawable/ic_empty_state_action_points</item>
+        <item name="es_title">@string/text_tv_empty_state_action_points_title</item>
+        <item name="es_description">@string/text_tv_empty_state_action_points_description</item>
+    </style>
+
+    <style name="TripsEmptyState" parent="BaseEmptyState">
+        <item name="es_icon">@drawable/ic_empty_state_trips</item>
+        <item name="es_title">@string/text_tv_empty_state_trips_title</item>
+        <item name="es_description">@string/text_tv_empty_state_trips_description</item>
+    </style>
+
+    <style name="SupervisedEmptyState" parent="BaseEmptyState">
+        <item name="es_icon">@drawable/ic_empty_state_supervised</item>
+        <item name="es_title">@string/text_tv_empty_state_supervised_title</item>
+        <item name="es_description">@string/text_tv_empty_state_supervised_description</item>
+    </style>
+
+    <style name="GeneralEmptyState" parent="BaseEmptyState">
+        <item name="es_icon">@drawable/ic_empty_state_general</item>
+        <item name="es_title">@string/text_tv_empty_state_general_title</item>
+        <item name="es_description">@string/text_tv_empty_state_general_description</item>
+    </style>
+
+</resources>

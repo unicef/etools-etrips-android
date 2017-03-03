@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="EmptyState">
+        <attr name="es_icon" format="reference" />
+        <attr name="es_title" format="string" />
+        <attr name="es_description" format="string" />
+    </declare-styleable>
+
+</resources>

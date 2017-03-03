@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/color_0099ff"
+            android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusableInTouchMode="true"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_weight="0"
+            android:background="@color/color_233944"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/img_logo"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="5dp"
+                    android:text="@string/text_tv_auth_etrips_logo_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="32sp"/>
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/text_tv_auth_etrips_logo_description"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <android.support.design.widget.TextInputLayout
+                android:id="@+id/til_auth_email"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="40dp"
+                android:paddingRight="40dp"
+                android:paddingTop="18dp"
+                android:textColorHint="@color/color_b9ffffff">
+
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/tiet_auth_email"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_tiet_auth_email"
+                    android:inputType="textEmailAddress"
+                    android:maxLines="1"
+                    android:minLines="1"
+                    android:paddingBottom="15dp"
+                    android:paddingTop="15dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"/>
+
+            </android.support.design.widget.TextInputLayout>
+
+            <android.support.design.widget.TextInputLayout
+                android:id="@+id/til_auth_pass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="40dp"
+                android:paddingRight="40dp"
+                android:paddingTop="18dp"
+                android:textColorHint="@color/color_b9ffffff">
+
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/tiet_auth_pass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_tiet_auth_pass"
+                    android:inputType="textPassword"
+                    android:maxLines="1"
+                    android:minLines="1"
+                    android:paddingBottom="15dp"
+                    android:paddingTop="15dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"/>
+
+            </android.support.design.widget.TextInputLayout>
+
+            <android.support.design.widget.TextInputLayout
+                android:id="@+id/til_auth_languages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="40dp"
+                android:paddingRight="40dp"
+                android:paddingTop="18dp"
+                android:textColorHint="@color/color_b9ffffff">
+
+                <org.unicef.etools.etrips.util.widget.EdittextSpinner
+                    android:id="@+id/ets_auth_languages"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:focusableInTouchMode="false"
+                    android:longClickable="false"
+                    android:hint="@string/hint_ets_auth_languages"
+                    android:paddingBottom="20dp"
+                    android:paddingTop="15dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"/>
+
+            </android.support.design.widget.TextInputLayout>
+
+            <Button
+                android:id="@+id/btn_auth_sign"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/text_btn_auth_sign"
+                android:textAllCaps="true"
+                android:textColor="@color/color_233944"
+                android:textSize="16sp"/>
+
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="0"
+            android:padding="20dp"
+            android:src="@drawable/img_unicef_logo"/>
+
+    </LinearLayout>
+
+</ScrollView>
+

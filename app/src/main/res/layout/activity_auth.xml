@@ -111,7 +111,7 @@
                 android:paddingTop="18dp"
                 android:textColorHint="@color/color_b9ffffff">
 
-                <org.unicef.etools.etrips.util.widget.EdittextSpinner
+                <org.unicef.etools.etrips.prod.util.widget.EdittextSpinner
                     android:id="@+id/ets_auth_languages"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

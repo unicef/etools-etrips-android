@@ -1,9 +1,9 @@
 <resources>
     <!--id-->
-    <string name="hockey_app_id">7f281e49d10444ec9f21f64fd1b8404c</string>
-    <string name="hockey_app_secret">b617a3e09f314d808bda33193c487e23</string>
-    <string name="hockey_app_id_staging">6a410d97b74f418f9b064e1c132d8cc8</string>
-    <string name="hockey_app_secret_staging">8586501bfbb73170bc29afeac030c440</string>
+    <string name="hockey_app_id">25064f3a8f0447f096e4df648e432a5c</string>
+    <string name="hockey_app_secret">711bb17f5649299e704aeeaff0066a1b</string>
+    <string name="hockey_app_id_staging">208d7611effe47258455b36b50df0204</string>
+    <string name="hockey_app_secret_staging">f7f516e928d8e37682c6e9945ed7bf51</string>
 
     <!--main-->
     <string name="app_name">eTrips</string>

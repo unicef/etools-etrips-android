@@ -19,7 +19,7 @@
             android:paddingBottom="5dp"
             android:paddingTop="5dp" />
 
-        <org.unicef.etools.etrips.util.widget.EmptyState
+        <org.unicef.etools.etrips.prod.util.widget.EmptyState
             android:id="@+id/es_trip_actions_points"
             style="@style/ActionPointsEmptyState" />
 

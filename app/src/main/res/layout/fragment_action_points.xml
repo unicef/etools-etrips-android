@@ -16,7 +16,7 @@
 
     </android.support.v4.widget.SwipeRefreshLayout>
 
-    <org.unicef.etools.etrips.util.widget.EmptyState
+    <org.unicef.etools.etrips.prod.util.widget.EmptyState
         android:id="@+id/es_action_points"
         style="@style/ActionPointsEmptyState" />
 

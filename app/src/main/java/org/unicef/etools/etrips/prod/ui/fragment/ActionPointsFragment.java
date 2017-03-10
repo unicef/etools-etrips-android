@@ -303,7 +303,7 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
         mRealmActionPoints = Realm.getDefaultInstance()
                 .where(ActionPoint.class)
                 .equalTo("personResponsible", Preference.getInstance(getActivity()).getUserId())
-                .findAllAsync();
+                .findAllSortedAsync("dueDate");
         mRealmActionPoints.addChangeListener(this);
     }
 

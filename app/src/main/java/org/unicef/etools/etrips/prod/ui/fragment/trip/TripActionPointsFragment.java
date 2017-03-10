@@ -16,6 +16,7 @@ import org.unicef.etools.etrips.prod.ui.adapter.ActionPointAdapter;
 import org.unicef.etools.etrips.prod.ui.fragment.BaseActionPointFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
+import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.widget.EmptyState;
 
 import io.realm.Realm;
@@ -145,7 +146,11 @@ public class TripActionPointsFragment extends BaseActionPointFragment implements
             public void execute(Realm realm) {
                 mTrip = realm.where(Trip.class).equalTo("id", mTripId).findFirst();
 
-                if (mTrip.isMyTrip()){
+                if (mTrip == null || !mTrip.isValid()) {
+                    return;
+                }
+
+                if (mTrip.getSupervisor() != Preference.getInstance(getActivity()).getUserId() || mTrip.isMyTrip()) {
                     mBtnAddActionPoint.setVisibility(View.VISIBLE);
                 } else {
                     mBtnAddActionPoint.setVisibility(View.GONE);
@@ -156,7 +161,7 @@ public class TripActionPointsFragment extends BaseActionPointFragment implements
                     // before full name will be added on Server side.
                     // https://docs.google.com/document/d/1LrT3keXxudbgv725yVIdu6ZDQ6Hm5k71EeJisGKXWNw/edit - question 3.
                     AppUtil.addAssignedFullName(realm, mTrip.getActionPoints());
-                    mActionPointAdapter.add(mTrip.getActionPoints(), true);
+                    mActionPointAdapter.add(mTrip.getActionPoints().sort("dueDate"), true);
                 } else {
                     mEmptyState.setVisibility(View.VISIBLE);
                 }

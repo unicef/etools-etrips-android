@@ -105,13 +105,6 @@ public class TripsFragment extends BaseFragment implements View.OnClickListener,
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        loadTripsFromServer(APIUtil.getURL(String.format(MY_TRIPS,
-                Preference.getInstance(getActivity()).getUserId())), false);
-    }
-
-    @Override
     public void onDestroyView() {
         super.onDestroyView();
         BusProvider.unregister(this);
@@ -283,7 +276,7 @@ public class TripsFragment extends BaseFragment implements View.OnClickListener,
         RealmResults<Trip> trips = Realm.getDefaultInstance()
                 .where(Trip.class)
                 .equalTo("isMyTrip", true)
-                .findAllAsync();
+                .findAllSortedAsync("startDate");
         trips.addChangeListener(this);
     }
 

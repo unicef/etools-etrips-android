@@ -15,7 +15,6 @@ import android.widget.TextView;
 
 import org.unicef.etools.etrips.prod.R;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
-import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.util.DateUtil;
 import org.unicef.etools.etrips.prod.util.StringUtils;
 
@@ -182,7 +181,7 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
             // set action point due date
             final String dueDate = String.format(
                     context.getString(R.string.text_due_date),
-                    DateUtil.convertStringDatetoCalendarDate(actionPoint.getDueDate()));
+                    DateUtil.convertISOtoCalendarDate(actionPoint.getDueDate(), DateUtil.DD_MMM_YYYY));
             tvActionPointDueDate.setText(dueDate);
 
             // set action point status (text and right colored label)
@@ -192,29 +191,25 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
                 tvActionPointStatus.setText(null);
             }
             switch (actionPoint.getStatus()) {
-                case Trip.Status.APPROVED:
-                    ivActionPointStatusLabel.setBackgroundColor(ContextCompat.getColor(context,
-                            R.color.color_9ac8e2));
-                    break;
 
                 case ActionPoint.Status.OPEN:
                     ivActionPointStatusLabel.setBackgroundColor(ContextCompat.getColor(context,
-                            R.color.color_9efaed77));
+                            R.color.color_fcf39a));
                     break;
 
                 case ActionPoint.Status.ONGOING:
                     ivActionPointStatusLabel.setBackgroundColor(ContextCompat.getColor(context,
-                            R.color.color_b7cebc06));
+                            R.color.color_dcd051));
                     break;
 
                 case ActionPoint.Status.CANCELLED:
                     ivActionPointStatusLabel.setBackgroundColor(ContextCompat.getColor(context,
-                            R.color.color_747474));
+                            R.color.color_848484));
                     break;
 
                 case ActionPoint.Status.COMPLETED:
                     ivActionPointStatusLabel.setBackgroundColor(ContextCompat.getColor(context,
-                            R.color.color_747474));
+                            R.color.color_68ba00));
                     break;
             }
 

@@ -343,17 +343,21 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
         // traveler name
         if (mTraveler != null && mTraveler.isValid()) {
             mTvTripTraveler.setText(mTraveler.getFullName());
+        } else {
+            mTvTripTraveler.setText(mTrip.getTravelerName());
+        }
+
+        // traveler supervisor
+        if (mSupervisor != null && mSupervisor.isValid()) {
+            mTvTripSuperviser.setText(mSupervisor.getFullName());
+        } else {
+            mTvTripTraveler.setText(mTrip.getSupervisorName());
         }
 
         // traveler group
         mTvTripGroup.setText("");
 
         checkStatuses();
-
-        // traveler supervisor
-        if (mSupervisor != null && mSupervisor.isValid()) {
-            mTvTripSuperviser.setText(mSupervisor.getFullName());
-        }
 
         // trip period
         mTvTripDate.setText(DateUtil.convertISOtoCalendarDate(mTrip.getStartDate(), DD_MMM_YYYY)
@@ -436,7 +440,7 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
                     mTvTripStatus.setTextColor(ContextCompat.getColor(getActivity(), R.color.color_de2618));
                     mBtnTripReject.setVisibility(View.GONE);
                     mBtnTripSubmit.setVisibility(View.GONE);
-                    if (mTrip.getRejectionNote() != null && !mTrip.getRejectionNote().isEmpty()){
+                    if (mTrip.getRejectionNote() != null && !mTrip.getRejectionNote().isEmpty()) {
                         mLlRn.setVisibility(View.VISIBLE);
                         mEdtRn.setFocusable(false);
                         mEdtRn.setCursorVisible(false);
@@ -512,9 +516,9 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
         DialogManager.getInstance().showPreloader(getActivity(), getClass().getSimpleName());
         RetrofitUtil.changeTripStatusRequest(
                 getActivity(),
-                TripFragment.class.getSimpleName(),
+                mTripId,
                 status,
-                mTrip
+                TripFragment.class.getSimpleName()
         );
     }
 

@@ -205,7 +205,7 @@
         jumboMode="true"
         optimize="true"
         revision="25.0.2"
-        sha1="f94f12475435ec7701a6f015c9cb48a07345fb3b">
+        sha1="debcbf9307d6a5841703d17a471f7ff45aed882b">
         <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/instant-run-bootstrap_0c953805c32bef3c706f2932aa6ba95134b275b9/classes.dex" />
     </item>
     <item
@@ -228,11 +228,20 @@
     </item>
     <item
         is-multidex="true"
+        jar="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/exploded-aar/id.zelory/compressor/1.0.4/jars/classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="3a724d5d031884220bae4a255f6d2763cd0ebdc4">
+        <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/id.zelory-compressor-1.0.4_20a3b2af714bf8cd17c6138332b18574404bf3ca/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
         jar="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/incremental-runtime-classes/debug/instant-run.jar"
         jumboMode="true"
         optimize="true"
         revision="25.0.2"
-        sha1="fa6543e787016765c618abe595152517f63b5287">
+        sha1="fe40750e24e7c5f876255daadfc1a7889a4a1944">
         <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/instant-run_f1e8b3937909571ac645448e20a819336726de38/classes.dex" />
     </item>
     <item
@@ -243,6 +252,15 @@
         revision="25.0.2"
         sha1="ca3c7aa31e2726a400a6e552b93cb9f63c9a1e6d">
         <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-support-compat-25.1.0_7647e7591e6e2b57efb12b760419e11d04e45ed3/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/Users/dmgmyza/.gradle/caches/modules-2/files-2.1/io.reactivex/rxjava/1.1.6/2586312cd2b8a511e4c6236736f5a039fc0f2273/rxjava-1.1.6.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="2586312cd2b8a511e4c6236736f5a039fc0f2273">
+        <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/rxjava-1.1.6_5cfe508eaa0d2359236cb078e54c286fc5bab103/classes.dex" />
     </item>
     <item
         is-multidex="true"
@@ -279,6 +297,15 @@
         revision="25.0.2"
         sha1="043eeae0b9fb087bb3194ba59ab63a38a32fbf3e">
         <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/retrofit-2.0.2_d063fc378fc0b91d076bd8800783c3f518291067/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/exploded-aar/net.hockeyapp.android/HockeySDK/4.1.2/jars/classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="db7ccf55fd029703e70f0fdf6358b2c813d181f9">
+        <dex dex="/Users/dmgmyza/Documents/projects/etrips_android/eTrips/app/build/intermediates/transforms/dex/debug/folders/1000/10/net.hockeyapp.android-HockeySDK-4.1.2_7b511ff6eee16ac6b61c952d7f2e337a74b849b1/classes.dex" />
     </item>
 
 </items>

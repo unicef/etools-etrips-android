@@ -173,6 +173,8 @@ public class ReportPhotoActivity extends BaseActivity implements View.OnClickLis
     private void loadData() {
         if (mPhotoUrl != null && mPhotoDescription != null) {
 
+            mTilReportPhotoDescription.setHintAnimationEnabled(mPhotoDescription.isEmpty());
+
             // set description
             mEdtReportPhotoDescription.setText(mPhotoDescription);
 

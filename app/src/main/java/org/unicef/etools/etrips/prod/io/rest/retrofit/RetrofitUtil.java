@@ -12,6 +12,7 @@ import com.google.gson.JsonParser;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
+import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
 import org.unicef.etools.etrips.prod.db.entity.trip.Attachment;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
@@ -173,17 +174,16 @@ public class RetrofitUtil {
         });
     }
 
-    public static void changeTripStatusRequest(final Context context, final String subscriber, String status, final Trip trip) {
+    public static void changeTripStatusRequest(final Context context, final long tripId, String status, final String subscriber) {
 
         if (BuildConfig.isDEBUG) Log.i(LOG_TAG, "Calling URL: "
-                + APIUtil.getURL(String.format(SUBMIT_REPORT, trip.getId())));
+                + APIUtil.getURL(String.format(SUBMIT_REPORT, tripId)));
 
         RetrofitApiService retrofitApiService = initRetrofit();
 
         Call<Trip> call = retrofitApiService.changeTripStatus(
                 RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
-                trip,
-                String.format(Locale.US, CHANGE_TRIP_STATUS, trip.getId(), status)
+                String.format(Locale.US, CHANGE_TRIP_STATUS, tripId, status)
         );
 
         call.enqueue(new Callback<Trip>() {
@@ -199,7 +199,7 @@ public class RetrofitUtil {
                             @Override
                             public void execute(Realm realm) {
                                 // first check  - is my or supervised trip  and check traveler name
-                                Trip fromDateBase = realm.where(Trip.class).equalTo("id", trip.getId()).findFirst();
+                                Trip fromDateBase = realm.where(Trip.class).equalTo("id", tripId).findFirst();
                                 if (fromDateBase != null && fromDateBase.isValid()) {
                                     loadedTrip.setMyTrip(fromDateBase.isMyTrip());
                                     loadedTrip.setTravelerName(fromDateBase.getTravelerName());
@@ -346,16 +346,13 @@ public class RetrofitUtil {
         });
     }
 
-    // FIXME: this API was changed.
-    // Now don't send whole trip to the server, just send :
-    // "action_points" : [{AP_old}, {AP_old}, {AP_new}]
     public static void addActionPointToTrip(@NonNull final Context context, @NonNull Trip trip,
                                             final String subscriber) {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<Trip> call = retrofit.addActionPointToTrip(
                 RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
-                trip.getId(), trip);
+                trip.getId(), new ActionPointsWrapper(trip.getActionPoints()));
 
         if (BuildConfig.isDEBUG) {
             Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());

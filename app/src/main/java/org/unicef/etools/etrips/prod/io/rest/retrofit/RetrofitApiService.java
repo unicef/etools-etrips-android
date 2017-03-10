@@ -2,6 +2,7 @@ package org.unicef.etools.etrips.prod.io.rest.retrofit;
 
 
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
+import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.io.rest.entity.ActionPointListResponse;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
@@ -38,7 +39,6 @@ public interface RetrofitApiService {
     @PATCH()
     Call<Trip> changeTripStatus(
             @Header("Authorization") String authorization,
-            @Body Trip trip,
             @Url String url
     );
 
@@ -74,6 +74,6 @@ public interface RetrofitApiService {
     Call<Trip> addActionPointToTrip(
             @Header("Authorization") String authorization,
             @Path("trip_id") long tripId,
-            @Body Trip trip
+            @Body ActionPointsWrapper actionPointsWrapper
     );
 }

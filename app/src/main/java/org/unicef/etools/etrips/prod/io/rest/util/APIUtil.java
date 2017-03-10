@@ -7,6 +7,7 @@ public class APIUtil {
 
     private static final String HOST_PRODUCTION = "https://etools.unicef.org/";
     private static final String HOST_STAGING = "https://etools-staging.unicef.org/";
+//    private static final String HOST_STAGING = "http://etools.razortheory.com/";
 
     public static final String LOGIN_STAGING = "/login/token-auth/";
     public static final String LOGIN_PROD = "https://login.unicef.org/adfs/services/trust/13/UsernameMixed";
@@ -24,7 +25,7 @@ public class APIUtil {
     public static final String USERS = "/users/api/";
     public static final String CHANGE_TRIP_STATUS = "/api/t2f/travels/%d/%s/";
 
-    public static final int PER_PAGE_ACTION_POINTS = 5;
+    public static final int PER_PAGE_ACTION_POINTS = 20;
 
     public static String getURL(String api) {
         return getHost() + api;

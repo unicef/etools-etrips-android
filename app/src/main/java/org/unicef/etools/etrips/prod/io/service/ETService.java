@@ -514,6 +514,7 @@ public class ETService extends Service {
 
                 Gson gson = new GsonBuilder()
                         .registerTypeAdapter(Trip.class, new Trip.TripDeserializer())
+                        .excludeFieldsWithoutExposeAnnotation()
                         .create();
                 JsonObject rootObject = new JsonParser().parse(httpConnection.getHttpResponseBody().toString()).getAsJsonObject();
                 final Trip trip = gson.fromJson(rootObject, Trip.class);

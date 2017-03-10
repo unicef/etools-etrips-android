@@ -261,7 +261,7 @@ public class SupervisedFragment extends BaseFragment implements View.OnClickList
         mTripList.clear();
         mTripList.addAll(tripArrayList);
         mTripAdapter.notifyDataSetChanged();
-        if (mTripList.isEmpty()){
+        if (mTripList.isEmpty()) {
             mEmptyState.setVisibility(View.VISIBLE);
         } else {
             mEmptyState.setVisibility(View.GONE);
@@ -272,7 +272,7 @@ public class SupervisedFragment extends BaseFragment implements View.OnClickList
         RealmResults<Trip> trips = Realm.getDefaultInstance()
                 .where(Trip.class)
                 .equalTo("isMyTrip", false)
-                .findAllAsync();
+                .findAllSortedAsync("startDate");
         trips.addChangeListener(this);
     }
 

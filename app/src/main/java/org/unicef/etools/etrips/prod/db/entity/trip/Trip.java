@@ -99,6 +99,10 @@ public class Trip extends RealmObject {
     public long supervisor;
 
     @Expose
+    @SerializedName("supervisor_name")
+    public String supervisorName;
+
+    @Expose
     @SerializedName("international_travel")
     public boolean isInternationalTravel;
 
@@ -187,12 +191,13 @@ public class Trip extends RealmObject {
 
     public Trip(long pk, long id, String referenceNumber, long traveler, boolean notSynced, boolean isMyTrip,
                 String travelerName, String purpose, String status, int section, int office, String startDate,
-                String endDate, long supervisor, boolean isInternationalTravel, boolean isTaRequired,
-                double estimatedTravelCost, long currency, String completedAt, String canceledAt, String rejectionNote,
-                String cancellationNote, String certificationNote, String report, String additionalNote, String miscExpenses,
-                RealmList<Itinerary> itineraries, RealmList<Expense> expenses, RealmList<Deduction> deductions,
-                RealmList<CostAssignment> costAssignments, Clearance clearances, RealmList<Activity> activities,
-                RealmList<Attachment> attachments, CostSummary costSummary, RealmList<ActionPoint> actionPoints) {
+                String endDate, long supervisor, String supervisorName, boolean isInternationalTravel,
+                boolean isTaRequired, double estimatedTravelCost, long currency, String completedAt, String canceledAt,
+                String rejectionNote, String cancellationNote, String certificationNote, String report,
+                String additionalNote, String miscExpenses, RealmList<Itinerary> itineraries, RealmList<Expense> expenses,
+                RealmList<Deduction> deductions, RealmList<CostAssignment> costAssignments, Clearance clearances,
+                RealmList<Activity> activities, RealmList<Attachment> attachments, CostSummary costSummary,
+                RealmList<ActionPoint> actionPoints) {
         this.pk = pk;
         this.id = id;
         this.referenceNumber = referenceNumber;
@@ -207,6 +212,7 @@ public class Trip extends RealmObject {
         this.startDate = startDate;
         this.endDate = endDate;
         this.supervisor = supervisor;
+        this.supervisorName = supervisorName;
         this.isInternationalTravel = isInternationalTravel;
         this.isTaRequired = isTaRequired;
         this.estimatedTravelCost = estimatedTravelCost;
@@ -492,6 +498,14 @@ public class Trip extends RealmObject {
 
     public void setAttachments(RealmList<Attachment> attachments) {
         this.attachments = attachments;
+    }
+
+    public String getSupervisorName() {
+        return supervisorName;
+    }
+
+    public void setSupervisorName(String supervisorName) {
+        this.supervisorName = supervisorName;
     }
 
     public CostSummary getCostSummary() {

@@ -45,6 +45,7 @@ import org.unicef.etools.etrips.prod.ui.fragment.BaseFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.FileUtil;
+import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 
@@ -569,19 +570,21 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
             mReportPhotoAdapter.notifyDataSetChanged();
         }
 
-        if (!mTrip.isMyTrip()) {
-            if ((mTrip.getAttachments() == null || mTrip.getAttachments().isEmpty())
-                    && (mTrip.getReport() == null || mTrip.getReport().isEmpty())) {
+        // check supervised state
+        if (mTrip.getSupervisor() == Preference.getInstance(getActivity()).getUserId() || !mTrip.isMyTrip()) {
+            mBtnSubmit.setVisibility(View.GONE);
+            if (mTrip.getReport() == null || mTrip.getReport().isEmpty()) {
                 mEdtReportText.setFocusable(false);
                 mEdtReportText.setCursorVisible(false);
                 mEdtReportText.setKeyListener(null);
                 mEdtReportText.setBackgroundColor(Color.TRANSPARENT);
                 mEdtReportText.setText(R.string.text_no_report);
+                mCvPhotosContainer.setVisibility(View.GONE);
+                return;
+            }
 
-                if (mTrip.getAttachments().isEmpty()) {
-                    mCvPhotosContainer.setVisibility(View.GONE);
-                    mBtnSubmit.setVisibility(View.GONE);
-                }
+            if (mTrip.getAttachments() == null || mTrip.getAttachments().isEmpty()) {
+                mCvPhotosContainer.setVisibility(View.GONE);
             }
         }
 
@@ -591,6 +594,7 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
         // init RecyclerView with adapter and list of ReportPhoto objects,
         // later we will store all selected photos in it
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
+        mRvReportPhotos.setNestedScrollingEnabled(false);
         mRvReportPhotos.setLayoutManager(linearLayoutManager);
         mAttachmentArrayList = new ArrayList<>();
         mReportPhotoAdapter = new ReportPhotoAdapter(mAttachmentArrayList, this);

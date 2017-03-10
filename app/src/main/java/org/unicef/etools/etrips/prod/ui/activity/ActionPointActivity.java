@@ -178,9 +178,16 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
             @Override
             public void execute(Realm realm) {
                 if (op == EDIT) {
+                    mActionPointStatuses = realm.where(ActionPointStatus.class)
+                            .findAll();
                     final ActionPoint actionPoint = realm.where(ActionPoint.class)
                             .equalTo("id", id)
                             .findFirst();
+
+                    Trip trip = realm.where(Trip.class)
+                            .equalTo("id", actionPoint.getTripId())
+                            .findFirst();
+                    checkEditState(actionPoint, trip);
                     mActionPoint = realm.copyFromRealm(actionPoint);
 
                     mPersonResponsibleFullName = mActionPoint.getPersonResponsibleName();
@@ -208,16 +215,6 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
         if (op == EDIT) {
             screenName = getString(R.string.screen_name_my_action_point);
             btnText = getString(R.string.text_btn_action_point_save);
-
-            if (mActionPoint.getAssignedBy() == Preference.getInstance(this).getUserId()) {
-                mTvPersonResponsible.setEnabled(false);
-                mEdtDescription.setEnabled(false);
-                mTvDueDate.setEnabled(false);
-                mTvStatus.setEnabled(false);
-
-                removeEditRightDrawable(mTvPersonResponsible);
-                removeEditRightDrawable(mTvDueDate);
-            }
             applyActionPointData(mActionPoint);
         } else {
             mSwcFollowUp.setChecked(true);
@@ -444,6 +441,47 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
         if (current != mNormalTextColor) {
             view.setTextColor(mNormalTextColor);
         }
+    }
+
+    private void checkEditState(ActionPoint actionPoint, Trip trip) {
+        if (trip != null && trip.isValid()) {
+            if (Preference.getInstance(ActionPointActivity.this).getUserId() != trip.getSupervisor()) {
+                if (actionPoint.getAssignedBy() != Preference.getInstance(ActionPointActivity.this).getUserId()) {
+                    mTvPersonResponsible.setEnabled(false);
+                    mEdtDescription.setEnabled(false);
+                    mTvDueDate.setEnabled(false);
+                    mTvStatus.setEnabled(false);
+                    removeEditRightDrawable(mTvPersonResponsible);
+                    removeEditRightDrawable(mTvDueDate);
+                }
+            } else {
+                if (actionPoint.getAssignedBy() != Preference.getInstance(ActionPointActivity.this).getUserId()
+                        && Preference.getInstance(ActionPointActivity.this).getUserId() != actionPoint.getPersonResponsible()) {
+                    allowEditData(false);
+                    removeEditRightDrawable(mTvPersonResponsible);
+                    removeEditRightDrawable(mTvDueDate);
+                    removeEditRightDrawable(mTvCompletedDate);
+                } else if (actionPoint.getAssignedBy() != Preference.getInstance(ActionPointActivity.this).getUserId()) {
+                    mTvPersonResponsible.setEnabled(false);
+                    mEdtDescription.setEnabled(false);
+                    mTvDueDate.setEnabled(false);
+                    mTvStatus.setEnabled(false);
+                    removeEditRightDrawable(mTvPersonResponsible);
+                    removeEditRightDrawable(mTvDueDate);
+                }
+            }
+        }
+    }
+
+    private void allowEditData(boolean isAllow) {
+        mSwcFollowUp.setEnabled(isAllow);
+        mEdtDescription.setEnabled(isAllow);
+        mEdtActionsTaken.setEnabled(isAllow);
+        mTvDueDate.setEnabled(isAllow);
+        mTvPersonResponsible.setEnabled(isAllow);
+        mTvCompletedDate.setEnabled(isAllow);
+        mTvStatus.setEnabled(isAllow);
+        mBtnExecuteOperation.setVisibility(isAllow ? View.VISIBLE : View.INVISIBLE);
     }
 
     // ===========================================================

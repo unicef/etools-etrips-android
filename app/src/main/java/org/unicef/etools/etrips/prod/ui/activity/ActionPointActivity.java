@@ -347,7 +347,7 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
 
     private void executeOperation(@Operation int op) {
         boolean isError = false;
-        if (op == ADD) {
+//        if (op == ADD) {
             @ColorInt final int red = ContextCompat.getColor(this, R.color.color_ff4f4f);
 
             if (mActionPoint.getPersonResponsible() == ActionPoint.INVALID_ID) {
@@ -377,7 +377,7 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
                     isError = true;
                 }
             }
-        }
+//        }
 
         if (isError) {
             return;

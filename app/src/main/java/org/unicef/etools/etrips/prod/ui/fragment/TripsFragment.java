@@ -2,6 +2,7 @@ package org.unicef.etools.etrips.prod.ui.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
@@ -20,15 +21,15 @@ import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.bus.event.NetworkEvent;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.HttpRequestManager;
+import org.unicef.etools.etrips.prod.io.rest.entity.TripListResponse;
+import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
-import org.unicef.etools.etrips.prod.io.service.ETService;
 import org.unicef.etools.etrips.prod.ui.activity.TripActivity;
 import org.unicef.etools.etrips.prod.ui.adapter.TripAdapter;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
+import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
-import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.receiver.NetworkStateReceiver;
 import org.unicef.etools.etrips.prod.util.widget.EmptyState;
@@ -39,29 +40,37 @@ import java.util.List;
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
+import io.realm.Sort;
 
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.MY_TRIPS;
-
-public class TripsFragment extends BaseFragment implements View.OnClickListener,
-        TripAdapter.OnItemClickListener, SwipeRefreshLayout.OnRefreshListener,
-        RealmChangeListener<RealmResults<Trip>> {
+public class TripsFragment extends BaseFragment implements
+        SwipeRefreshLayout.OnRefreshListener, RealmChangeListener<RealmResults<Trip>>, TripAdapter.OnItemClickListener {
 
     // ===========================================================
     // Constants
     // ===========================================================
 
     private static final String LOG_TAG = TripsFragment.class.getSimpleName();
+
+    private static final int UNDEFINED_PAGE = 0;
+    private static final int FIRST_PAGE = 1;
     private static final int DRAFT = 101;
 
     // ===========================================================
     // Fields
     // ===========================================================
 
-    private RecyclerView mRvTrips;
-    private SwipeRefreshLayout mSwipeRefreshLayout;
-    private ArrayList<Trip> mTripList;
+    private boolean isLoading;
+    private boolean isRestoringRequest;
+    private boolean shouldLoadAllEvents;
+
+    private int mCurrentPage;
+    private int mTotalItemsCount;
+
     private TripAdapter mTripAdapter;
     private EmptyState mEmptyState;
+    private RecyclerView mRvTrips;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private RealmResults<Trip> mRealmTrips;
 
     // ===========================================================
     // Constructors
@@ -85,12 +94,6 @@ public class TripsFragment extends BaseFragment implements View.OnClickListener,
     // Methods for/from SuperClass
     // ===========================================================
 
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
@@ -98,90 +101,72 @@ public class TripsFragment extends BaseFragment implements View.OnClickListener,
         View view = inflater.inflate(R.layout.fragment_trips, container, false);
         findViews(view);
         setListeners();
-        init();
-        loadTripsFromServer(APIUtil.getURL(String.format(MY_TRIPS,
-                Preference.getInstance(getActivity()).getUserId())), true);
+
+        BusProvider.register(this);
+
         return view;
+    }
+
+    private void setListeners() {
+        mSwipeRefreshLayout.setOnRefreshListener(this);
+        mRvTrips.addOnScrollListener(mScrollListener);
+    }
+
+    private void findViews(View view) {
+        mEmptyState = (EmptyState) view.findViewById(R.id.es_trip);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.srl_trips);
+        mRvTrips = (RecyclerView) view.findViewById(R.id.rv_trips_list);
+    }
+
+    private void initListComponents() {
+        final LinearLayoutManager layoutManager
+                = new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false);
+        mRvTrips.setLayoutManager(layoutManager);
+
+        mTripAdapter = new TripAdapter(new ArrayList<Trip>(), this);
+        mRvTrips.setAdapter(mTripAdapter);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        initListComponents();
+        if (savedInstanceState != null) {
+            mCurrentPage = savedInstanceState.getInt(Constant.Extra.EXTRA_TRIPS_PAGE);
+        }
+
+        if (mCurrentPage == UNDEFINED_PAGE) {
+            loadTripsFromServer(FIRST_PAGE);
+        } else {
+            isRestoringRequest = true;
+            startLoading();
+            retrieveTripsFromDb();
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putInt(Constant.Extra.EXTRA_TRIPS_PAGE, mCurrentPage);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+        releaseResources();
+    }
+
+    private void releaseResources() {
         BusProvider.unregister(this);
-        DialogManager.getInstance().dismissPreloader(getActivity().getClass());
-        NetworkStateReceiver.unregisterBroadcast(getActivity());
-        dismissSwipeRefreshLayout();
+        if (mRealmTrips != null) {
+            mRealmTrips.removeChangeListener(this);
+        }
         Realm.getDefaultInstance().close();
-    }
+        NetworkStateReceiver.unregisterBroadcast(getActivity());
 
-
-    // ===========================================================
-    // Observer callback
-    // ===========================================================
-
-    @Subscribe
-    public void onEventReceived(Event event) {
-        if (event instanceof NetworkEvent) {
-            handleNetworkEvent((NetworkEvent) event);
-
-        } else if (event instanceof ApiEvent) {
-            if (event.getSubscriber().equals(getClass().getSimpleName())) {
-                handleApiEvents((ApiEvent) event);
-            }
-        }
-    }
-
-    // ===========================================================
-    // Observer methods
-    // ===========================================================
-
-    private void handleNetworkEvent(NetworkEvent event) {
-        switch (event.getEventType()) {
-            case Event.EventType.Network.CONNECTED:
-                loadTripsFromServer(APIUtil.getURL(String.format(MY_TRIPS,
-                        Preference.getInstance(getActivity()).getUserId())), true);
-                break;
-        }
-    }
-
-    private void handleApiEvents(ApiEvent event) {
-        DialogManager.getInstance().dismissPreloader(getActivity().getClass());
-        mSwipeRefreshLayout.setRefreshing(false);
-
-        switch (event.getEventType()) {
-            case Event.EventType.Api.TRIPS_LOADED:
-                retrieveTripsFromDb();
-                break;
-
-            case Event.EventType.Api.Error.NO_NETWORK:
-                NetworkStateReceiver.registerBroadcast(getActivity());
-                SnackBarManager.show(getActivity(), getString(R.string.msg_network_connection_error),
-                        SnackBarManager.Duration.LONG);
-                break;
-
-            case Event.EventType.Api.Error.PAGE_NOT_FOUND:
-                if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_page_not_found));
-                break;
-
-            case Event.EventType.Api.Error.BAD_REQUEST:
-                String body = (String) event.getEventData();
-                if (body != null) {
-                    SnackBarManager.show(getActivity(), body, SnackBarManager.Duration.LONG);
-                    if (BuildConfig.isDEBUG)
-                        Log.i(LOG_TAG, getString(R.string.msg_bad_request) + body);
-                }
-                break;
-
-            case Event.EventType.Api.Error.UNAUTHORIZED:
-                if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_not_authorized));
-                AppUtil.logout(getActivity());
-                break;
-
-            case Event.EventType.Api.Error.UNKNOWN:
-                SnackBarManager.show(getActivity(), getString(R.string.msg_unknown_error),
-                        SnackBarManager.Duration.LONG);
-                if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_unknown_error));
-                break;
+        if (mSwipeRefreshLayout != null) {
+            mSwipeRefreshLayout.setRefreshing(false);
+            mSwipeRefreshLayout.destroyDrawingCache();
+            mSwipeRefreshLayout.clearAnimation();
         }
     }
 
@@ -189,25 +174,9 @@ public class TripsFragment extends BaseFragment implements View.OnClickListener,
     // Other Listeners, methods for/from Interfaces
     // ===========================================================
 
-    @Override
-    public void onRefresh() {
-        loadTripsFromServer(APIUtil.getURL(String.format(MY_TRIPS,
-                Preference.getInstance(getActivity()).getUserId())), true);
-    }
-
-    @Override
-    public void onChange(RealmResults<Trip> element) {
-        populateList(element);
-    }
-
     // ===========================================================
     // Click Listeners
     // ===========================================================
-
-    @Override
-    public void onClick(View v) {
-
-    }
 
     @Override
     public void onItemClick(Trip trip) {
@@ -223,72 +192,208 @@ public class TripsFragment extends BaseFragment implements View.OnClickListener,
 
     }
 
+    @Override
+    public void onRefresh() {
+        loadTripsFromServer(FIRST_PAGE);
+    }
+
+    @Override
+    public void onChange(RealmResults<Trip> element) {
+        Log.d(LOG_TAG, "onChange - element size: " + element.size());
+        if (element.size() == 0) {
+            // There are no Trips in our database, so clear our UI list and show empty state.
+            mTripAdapter.clear();
+            mEmptyState.setVisibility(View.VISIBLE);
+        } else {
+//            final List<Trip> page = getPageFromRealResults(element);
+            mTripAdapter.add(element, true);
+            if (mEmptyState.getVisibility() == View.VISIBLE) {
+                mEmptyState.setVisibility(View.GONE);
+            }
+        }
+        if (mTotalItemsCount > mTripAdapter.getItemCount()) {
+            mTripAdapter.showLoadMore();
+        } else {
+            mTripAdapter.removeLoadMore();
+        }
+        finishLoading();
+    }
+
+    private List<Trip> getPageFromRealResults(@NonNull RealmResults<Trip> element) {
+        if (element.isEmpty()) {
+            return element;
+        }
+
+        if (shouldLoadAllEvents) {
+            return element;
+        }
+
+        final int offset = mCurrentPage - 1;
+        final int start;
+        int end;
+
+        if (isRestoringRequest) {
+            start = 0;
+        } else {
+            start = offset * APIUtil.PER_PAGE_ACTION_POINTS;
+        }
+        end = (offset + 1) * APIUtil.PER_PAGE_ACTION_POINTS;
+        if (end > element.size()) {
+            end = element.size();
+        }
+
+        return element.subList(start, end);
+    }
+
+    private boolean isPaginationRequest() {
+        return mCurrentPage > FIRST_PAGE;
+    }
+
     // ===========================================================
     // Methods
     // ===========================================================
 
-    private void setListeners() {
-        mSwipeRefreshLayout.setOnRefreshListener(this);
-    }
-
-    private void findViews(View view) {
-        mRvTrips = (RecyclerView) view.findViewById(R.id.rv_trips_list);
-        mEmptyState = (EmptyState) view.findViewById(R.id.es_trip);
-        mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.srl_trips);
-    }
-
-    private void init() {
-        // register BusProvider to receive necessary events from service or other senders
-        BusProvider.register(this);
-
-        // init ll manager, list and adapter
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
-        mRvTrips.setLayoutManager(linearLayoutManager);
-        mTripList = new ArrayList<>();
-        mTripAdapter = new TripAdapter(mTripList, this);
-        mRvTrips.setAdapter(mTripAdapter);
-    }
-
-    private void loadTripsFromServer(String apiUrl, boolean refreshing) {
-        // call server to retrieve all trips
-        if (refreshing) mSwipeRefreshLayout.setRefreshing(true);
-        ETService.start(
-                getActivity(),
-                getClass().getSimpleName(),
-                apiUrl,
-                HttpRequestManager.RequestType.GET_MY_TRIPS
-        );
-    }
-
-    private void populateList(List<Trip> tripArrayList) {
-        Log.d(LOG_TAG, String.valueOf(tripArrayList.size()));
-        mTripList.clear();
-        mTripList.addAll(tripArrayList);
-        mTripAdapter.notifyDataSetChanged();
-        if (mTripList.isEmpty()) {
-            mEmptyState.setVisibility(View.VISIBLE);
-        } else {
-            mEmptyState.setVisibility(View.GONE);
+    @Subscribe
+    public void onEventReceived(Event event) {
+        if (event instanceof NetworkEvent) {
+            handleNetworkEvent((NetworkEvent) event);
+        } else if (event instanceof ApiEvent) {
+            if (event.getSubscriber().equals(getClass().getSimpleName())) {
+                handleApiEvents((ApiEvent) event);
+            }
         }
     }
 
-    private void retrieveTripsFromDb() {
-        RealmResults<Trip> trips = Realm.getDefaultInstance()
-                .where(Trip.class)
-                .equalTo("isMyTrip", true)
-                .findAllSortedAsync("startDate");
-        trips.addChangeListener(this);
+    private void handleNetworkEvent(NetworkEvent event) {
+        switch (event.getEventType()) {
+            case Event.EventType.Network.CONNECTED:
+                loadTripsFromServer(FIRST_PAGE);
+                break;
+        }
     }
 
-    private void dismissSwipeRefreshLayout() {
-        if (mSwipeRefreshLayout != null) {
+    private void handleApiEvents(ApiEvent event) {
+        if (event.getEventType() == Event.EventType.Api.TRIPS_LOADED) {
+            TripListResponse tripListResponse = (TripListResponse) event.getEventData();
+            if (tripListResponse != null) {
+                mTotalItemsCount = tripListResponse.getTotalCount();
+            }
+            // Add Realm change listener only one time. Then onChange will be called by Realm.
+            if (mRealmTrips == null) {
+                retrieveTripsFromDb();
+            } else {
+                // If it is not the first request to server, and we have no data,
+                // onChange will not be called, so hide progress.
+                if (mRealmTrips.isEmpty()) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
+            }
+        } else {
+            finishLoading();
+            if (isPaginationRequest()) {
+                --mCurrentPage;
+            }
+
+            switch (event.getEventType()) {
+                case Event.EventType.Api.Error.NO_NETWORK:
+                    // Try load all events from database in case of lack of internet during first load.
+                    if (mRealmTrips == null) {
+                        shouldLoadAllEvents = true;
+                        retrieveTripsFromDb();
+                    }
+
+                    NetworkStateReceiver.registerBroadcast(getActivity());
+                    SnackBarManager.show(getActivity(), getString(R.string.msg_network_connection_error),
+                            SnackBarManager.Duration.LONG);
+                    break;
+
+                case Event.EventType.Api.Error.PAGE_NOT_FOUND:
+                    if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_page_not_found));
+                    break;
+
+                case Event.EventType.Api.Error.BAD_REQUEST:
+                    String body = (String) event.getEventData();
+                    if (body != null) {
+                        SnackBarManager.show(getActivity(), body, SnackBarManager.Duration.LONG);
+                        if (BuildConfig.isDEBUG)
+                            Log.i(LOG_TAG, getString(R.string.msg_bad_request) + body);
+                    }
+                    break;
+
+                case Event.EventType.Api.Error.UNAUTHORIZED:
+                    if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_not_authorized));
+                    AppUtil.logout(getActivity());
+                    break;
+
+                case Event.EventType.Api.Error.UNKNOWN:
+                    SnackBarManager.show(getActivity(), getString(R.string.msg_unknown_error),
+                            SnackBarManager.Duration.LONG);
+                    if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_unknown_error));
+                    break;
+            }
+        }
+    }
+
+    private void loadTripsFromServer(int page) {
+        mCurrentPage = page;
+        startLoading();
+
+        RetrofitUtil.getMyTrips(getActivity(), mCurrentPage,
+                Preference.getInstance(getActivity()).getUserId(), getClass().getSimpleName());
+    }
+
+    private void retrieveTripsFromDb() {
+        mRealmTrips = Realm.getDefaultInstance()
+                .where(Trip.class)
+                .equalTo("isMyTrip", true)
+                .findAllSortedAsync(new String[]{"startDate", "referenceNumber"}, new Sort[]{Sort.ASCENDING, Sort.ASCENDING});
+        mRealmTrips.addChangeListener(this);
+    }
+
+    public void startLoading() {
+        isLoading = true;
+        if (isRestoringRequest || !isPaginationRequest()) {
+            mSwipeRefreshLayout.setRefreshing(true);
+        }
+    }
+
+    private void finishLoading() {
+        isLoading = false;
+        if (isRestoringRequest || !isPaginationRequest()) {
             mSwipeRefreshLayout.setRefreshing(false);
-            mSwipeRefreshLayout.destroyDrawingCache();
-            mSwipeRefreshLayout.clearAnimation();
+        }
+        if (isRestoringRequest) {
+            isRestoringRequest = false;
+        }
+        if (shouldLoadAllEvents) {
+            shouldLoadAllEvents = false;
         }
     }
 
     // ===========================================================
     // Inner and Anonymous Classes
     // ===========================================================
+
+    private RecyclerView.OnScrollListener mScrollListener = new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            final LinearLayoutManager layoutManager
+                    = (LinearLayoutManager) recyclerView.getLayoutManager();
+
+            final int visibleItemCount = layoutManager.getChildCount();
+            final int totalItemCount = layoutManager.getItemCount();
+            final int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+            if (shouldPaginate(visibleItemCount, totalItemCount, firstVisibleItemPosition)) {
+                loadTripsFromServer(mCurrentPage + 1);
+            }
+        }
+    };
+
+    private boolean shouldPaginate(int visibleCount, int totalCount, int firstVisiblePosition) {
+        return NetworkUtil.getInstance().isConnected(getActivity())
+                && !isLoading && (visibleCount + firstVisiblePosition) >= totalCount
+                && firstVisiblePosition >= 0
+                && mTotalItemsCount > totalCount;
+    }
 }

@@ -212,17 +212,17 @@
                         android:visibility="gone">
 
                         <!--<View-->
-                            <!--android:layout_width="match_parent"-->
-                            <!--android:layout_height="1dp"-->
-                            <!--android:background="@color/color_18000000"/>-->
-<!---->
+                        <!--android:layout_width="match_parent"-->
+                        <!--android:layout_height="1dp"-->
+                        <!--android:background="@color/color_18000000"/>-->
+                        <!---->
                         <EditText
                             android:id="@+id/edt_rn"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginBottom="20dp"
                             android:layout_marginLeft="15dp"
                             android:layout_marginRight="15dp"
-                            android:layout_marginBottom="20dp"
                             android:layout_marginTop="20dp"
                             android:layout_weight="1"
                             android:background="@android:color/transparent"
@@ -495,7 +495,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:textColor="@android:color/black"
+                            android:textColor="@color/color_de2618"
                             android:textSize="16sp"/>
                     </LinearLayout>
 

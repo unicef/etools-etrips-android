@@ -114,7 +114,7 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
     private void handleNetworkEvent(NetworkEvent event) {
         switch (event.getEventType()) {
             case Event.EventType.Network.CONNECTED:
-                loadTripFromServer(false, getURL(String.format(TRIP, mTripId)));
+                loadTripFromServer(true, getURL(String.format(TRIP, mTripId)));
                 break;
         }
     }

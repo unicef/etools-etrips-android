@@ -5,6 +5,8 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -19,6 +21,7 @@ import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.rest.entity.ActionPointListResponse;
+import org.unicef.etools.etrips.prod.io.rest.entity.TripListResponse;
 import org.unicef.etools.etrips.prod.io.rest.url_connection.RestHttpClient;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
 import org.unicef.etools.etrips.prod.io.rest.util.HttpErrorUtil;
@@ -29,6 +32,7 @@ import org.unicef.etools.etrips.prod.util.Preference;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +82,7 @@ public class RetrofitUtil {
     // Methods
     // ===========================================================
 
-    public static void updateTripReportDescriptionRequest(final Context context, final String subscriber, Trip trip) {
+    public static Call updateTripReportDescriptionRequest(final Context context, final String subscriber, Trip trip) {
 
         // Report submition consist of two parts:
         // first - we send report description on server
@@ -119,9 +123,10 @@ public class RetrofitUtil {
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
             }
         });
+        return call;
     }
 
-    public static void uploadTripReportFileRequest(@NonNull final Context context,
+    public static Call uploadTripReportFileRequest(@NonNull final Context context,
                                                    final Attachment attachment,
                                                    final String subscriber,
                                                    long tripId) {
@@ -172,9 +177,10 @@ public class RetrofitUtil {
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
             }
         });
+        return call;
     }
 
-    public static void changeTripStatusRequest(final Context context, final long tripId, String status, final String subscriber) {
+    public static Call changeTripStatusRequest(final Context context, final long tripId, String status, final String subscriber) {
 
         if (BuildConfig.isDEBUG) Log.i(LOG_TAG, "Calling URL: "
                 + APIUtil.getURL(String.format(SUBMIT_REPORT, tripId)));
@@ -212,8 +218,12 @@ public class RetrofitUtil {
                     BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.TRIP_STATUS_CHANGED,
                             subscriber));
                 } else {
-                    handleFailedRequest(context, null, subscriber, response.raw().message(),
-                            response.code());
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
                 }
             }
 
@@ -224,15 +234,16 @@ public class RetrofitUtil {
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
             }
         });
+        return call;
     }
 
-    public static void getActionPoints(@NonNull final Context context, final int page, final long relatedUserId,
+    public static Call getActionPoints(@NonNull final Context context, final int page, final long relatedUserId,
                                        final String subscriber) {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<ActionPointListResponse> call = retrofit.getActionPoints(
                 RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
-                page, APIUtil.PER_PAGE_ACTION_POINTS, relatedUserId);
+                page, APIUtil.PER_PAGE_ACTION_POINTS, APIUtil.SortBy.DUE_DATE, relatedUserId);
 
         if (BuildConfig.isDEBUG) {
             Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
@@ -276,7 +287,7 @@ public class RetrofitUtil {
                     realm.close();
 
                     final ApiEvent event
-                            = new ApiEvent<>(ApiEvent.EventType.Api.ACTION_POINTS_LOADED, subscriber);
+                            = new ApiEvent<>(ApiEvent.EventType.Api.ACTION_POINTS_LOADED, body, subscriber);
                     BusProvider.getInstance().post(event);
                 } else {
                     handleFailedRequest(context, null, subscriber, response.errorBody().toString(),
@@ -291,9 +302,10 @@ public class RetrofitUtil {
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
             }
         });
+        return call;
     }
 
-    public static void updateActionPoint(@NonNull final Context context, @NonNull final ActionPoint actionPoint,
+    public static Call updateActionPoint(@NonNull final Context context, @NonNull final ActionPoint actionPoint,
                                          final String subscriber) {
 
         final RetrofitApiService retrofit = initRetrofit();
@@ -344,9 +356,10 @@ public class RetrofitUtil {
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
             }
         });
+        return call;
     }
 
-    public static void addActionPointToTrip(@NonNull final Context context, @NonNull Trip trip,
+    public static Call addActionPointToTrip(@NonNull final Context context, @NonNull Trip trip,
                                             final String subscriber) {
 
         final RetrofitApiService retrofit = initRetrofit();
@@ -404,6 +417,7 @@ public class RetrofitUtil {
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
             }
         });
+        return call;
     }
 
     // ===========================================================
@@ -490,5 +504,187 @@ public class RetrofitUtil {
                         subscriber));
                 break;
         }
+    }
+
+    public static Call getMyTrips(@NonNull final Context context, final int page, final long relatedUserId,
+                                  final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<JsonObject> call = retrofit.getMyTrips(
+                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                page, APIUtil.PER_PAGE_TRIPS, APIUtil.SortBy.START_DATE, relatedUserId);
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    if (BuildConfig.isDEBUG) {
+                        Log.d(LOG_TAG, "getMyTrips: " + response.body().toString());
+                    }
+
+                    // divide traveler id and traveler name
+                    Gson gson = new GsonBuilder()
+                            .registerTypeAdapter(Trip.class, new Trip.TripDeserializer())
+                            .excludeFieldsWithoutExposeAnnotation()
+                            .create();
+                    JsonObject rootObject = response.body();
+
+                    final TripListResponse body = gson.fromJson(rootObject, TripListResponse.class);
+
+                    AppUtil.extendTripModel(true, Preference.getInstance(context).getUserId(), body.trips);
+
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+
+                            // get all drafts
+                            List<Trip> draftTrips = realm.copyFromRealm(Realm.getDefaultInstance()
+                                    .where(Trip.class)
+                                    .equalTo("notSynced", true)
+                                    .findAll());
+
+                            if (page == 1) {
+                                boolean deleted = realm.where(Trip.class)
+                                        .equalTo("isMyTrip", true)
+                                        .findAll()
+                                        .deleteAllFromRealm();
+
+                                if (BuildConfig.isDEBUG && deleted) {
+                                    Log.d(LOG_TAG, "My trips cleared.");
+                                }
+                            }
+
+                            // restore drafts
+                            for (Trip tripDraft : draftTrips) {
+                                for (int i = 0; i < body.trips.size(); i++) {
+                                    Trip trip = body.trips.get(i);
+                                    if (trip.getId() == tripDraft.getId()) {
+
+                                        if (tripDraft.isNotSynced()) {
+                                            trip.setNotSynced(tripDraft.isNotSynced());
+
+                                            if (tripDraft.getReport() != null) {
+                                                trip.setReport(tripDraft.getReport());
+                                            }
+                                            if (tripDraft.getAttachments() != null) {
+                                                trip.setAttachments(tripDraft.getAttachments()/*realm.copyFromRealm(tripDraft).getAttachments()*/);
+                                            }
+
+//                                        trip.setNotSynced(tripDraft.isNotSynced());
+//                                        trip.setReport(tripDraft.getReport());
+//                                        trip.setAttachments(tripDraft.getAttachments());
+                                            body.trips.set(i, trip);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // add
+                            realm.insertOrUpdate(body.trips);
+                        }
+                    });
+                    realm.close();
+
+                    final ApiEvent event = new ApiEvent<>(ApiEvent.EventType.Api.TRIPS_LOADED, body, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    handleFailedRequest(context, null, subscriber, response.errorBody().toString(),
+                            response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonObject> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    public static Call getSupervisedTrips(@NonNull final Context context, final int page, final long relatedUserId,
+                                          final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<JsonObject> call = retrofit.getSupervisedTrips(
+                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                page, APIUtil.PER_PAGE_TRIPS, APIUtil.SortBy.START_DATE, relatedUserId);
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    if (BuildConfig.isDEBUG) {
+                        Log.d(LOG_TAG, "getSupervisedTrips: " + response.body().toString());
+                    }
+
+                    // divide traveler id and traveler name
+                    Gson gson = new GsonBuilder()
+                            .registerTypeAdapter(Trip.class, new Trip.TripDeserializer())
+                            .excludeFieldsWithoutExposeAnnotation()
+                            .create();
+                    JsonObject rootObject = response.body();
+
+                    final TripListResponse body = gson.fromJson(rootObject, TripListResponse.class);
+
+                    AppUtil.extendTripModel(false, 0, body.trips);
+
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            if (page == 1) {
+                                boolean deleted = realm.where(Trip.class)
+                                        .equalTo("isMyTrip", false)
+                                        .findAll()
+                                        .deleteAllFromRealm();
+
+                                if (BuildConfig.isDEBUG && deleted) {
+                                    Log.d(LOG_TAG, "Supervised trips cleared.");
+                                }
+                            }
+
+                            // add
+                            realm.insertOrUpdate(body.trips);
+                        }
+                    });
+                    realm.close();
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.TRIPS_LOADED, body, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    handleFailedRequest(context, null, subscriber, response.errorBody().toString(),
+                            response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonObject> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
     }
 }

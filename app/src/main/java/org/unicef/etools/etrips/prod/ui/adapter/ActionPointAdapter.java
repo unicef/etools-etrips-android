@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import org.unicef.etools.etrips.prod.R;
@@ -28,11 +29,14 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
     // ===========================================================
 
     private static final String LOG_TAG = ActionPointAdapter.class.getSimpleName();
+    private static final int CONTENT_VIEW_TYPE = 0;
+    private static final int LOAD_MORE_VIEW_TYPE = 1;
 
     // ===========================================================
     // Fields
     // ===========================================================
 
+    private boolean showLoadMore;
     private ArrayList<ActionPoint> mActionPointList;
     private OnItemClickListener mOnItemClickListener;
 
@@ -45,7 +49,6 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
         mOnItemClickListener = onItemClickListener;
     }
 
-
     // ===========================================================
     // Getter & Setter
     // ===========================================================
@@ -56,26 +59,46 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
-        View view = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.adapter_item_action_point, viewGroup, false);
-        return new ViewHolder(view, mActionPointList, mOnItemClickListener);
+        int layout = 0;
+
+        switch (viewType) {
+
+            case CONTENT_VIEW_TYPE:
+                layout = R.layout.adapter_item_action_point;
+                break;
+
+            case LOAD_MORE_VIEW_TYPE:
+                layout = R.layout.layout_pagination_preloader;
+                break;
+        }
+
+        View view = LayoutInflater.from(viewGroup.getContext()).inflate(layout, viewGroup, false);
+        return new ViewHolder(viewType, view, mActionPointList, mOnItemClickListener);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        holder.bindData();
+        if (position >= mActionPointList.size()) {
+            holder.bindLoadMoreData();
+        } else {
+            holder.bindContentData();
+        }
     }
 
     @Override
     public int getItemCount() {
-        return mActionPointList.size();
+        return showLoadMore && mActionPointList.size() > 0 ? mActionPointList.size() + 1 : mActionPointList.size();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return position >= mActionPointList.size() ? LOAD_MORE_VIEW_TYPE : CONTENT_VIEW_TYPE;
     }
 
     @Override
     public void onAttachedToRecyclerView(RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
     }
-
 
     // ===========================================================
     // Other Listeners, methods for/from Interfaces
@@ -108,7 +131,7 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
     }
 
     public void add(ActionPoint actionPoint) {
-        if (actionPoint == null) {
+        if (actionPoint == null || !actionPoint.isValid()) {
             return;
         }
 
@@ -129,6 +152,20 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
         notifyItemRangeRemoved(start, count);
     }
 
+    public void showLoadMore() {
+        if (getItemCount() == mActionPointList.size()) {
+            showLoadMore = true;
+            notifyItemInserted(mActionPointList.size() + 1);
+        }
+    }
+
+    public void removeLoadMore() {
+        if (getItemCount() > mActionPointList.size()) {
+            showLoadMore = false;
+            notifyItemRemoved(mActionPointList.size() + 1);
+        }
+    }
+
     // ===========================================================
     // Inner and Anonymous Classes
     // ===========================================================
@@ -142,18 +179,28 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
         TextView tvActionPointStatus;
         ImageView ivActionPointStatusLabel;
         CardView cvItemContainer;
+        ProgressBar pbLoadMore;
         OnItemClickListener onItemClickListener;
         ArrayList<ActionPoint> actionPointList;
 
-        ViewHolder(View itemView, ArrayList<ActionPoint> actionPointList, OnItemClickListener onItemClickListener) {
+        ViewHolder(int type, View itemView, ArrayList<ActionPoint> actionPointList, OnItemClickListener onItemClickListener) {
             super(itemView);
             this.actionPointList = actionPointList;
             this.onItemClickListener = onItemClickListener;
             this.context = itemView.getContext();
-            findViews(itemView);
+
+            switch (type) {
+                case CONTENT_VIEW_TYPE:
+                    findContentViews(itemView);
+                    break;
+
+                case LOAD_MORE_VIEW_TYPE:
+                    findLoadMoreViews(itemView);
+                    break;
+            }
         }
 
-        void findViews(View view) {
+        void findContentViews(View view) {
             tvActionPointDescription = (TextView) view.findViewById(R.id.tv_item_action_point_description);
             tvActionPointDueDate = (TextView) view.findViewById(R.id.tv_item_action_point_due_date);
             tvActionPointAssignedBy = (TextView) view.findViewById(R.id.tv_item_action_point_assigned_by);
@@ -162,7 +209,11 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
             cvItemContainer = (CardView) view.findViewById(R.id.cv_item_action_point_container);
         }
 
-        void bindData() {
+        void findLoadMoreViews(View view) {
+            pbLoadMore = (ProgressBar) view.findViewById(R.id.pb_paginate);
+        }
+
+        void bindContentData() {
             final ActionPoint actionPoint = actionPointList.get(getAdapterPosition());
             if (!actionPoint.isValid()) {
                 return;
@@ -238,6 +289,9 @@ public class ActionPointAdapter extends RecyclerView.Adapter<ActionPointAdapter.
                     return true;
                 }
             });
+        }
+
+        void bindLoadMoreData() {
         }
     }
 

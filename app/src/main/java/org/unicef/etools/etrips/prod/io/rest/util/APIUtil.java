@@ -24,8 +24,10 @@ public class APIUtil {
     public static final String STATIC_DATA_2 = "/api/static_data/";
     public static final String USERS = "/users/api/";
     public static final String CHANGE_TRIP_STATUS = "/api/t2f/travels/%d/%s/";
+    public static final String TRIPS = "/api/t2f/travels/";
 
     public static final int PER_PAGE_ACTION_POINTS = 20;
+    public static final int PER_PAGE_TRIPS = 20;
 
     public static String getURL(String api) {
         return getHost() + api;
@@ -37,5 +39,10 @@ public class APIUtil {
         } else {
             return HOST_STAGING;
         }
+    }
+
+    public static class SortBy {
+        public static final String DUE_DATE = "due_date";
+        public static final String START_DATE = "start_date";
     }
 }

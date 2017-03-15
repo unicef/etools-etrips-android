@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import org.unicef.etools.etrips.prod.R;
@@ -18,6 +19,7 @@ import org.unicef.etools.etrips.prod.util.DateUtil;
 import org.unicef.etools.etrips.prod.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.unicef.etools.etrips.prod.util.DateUtil.DD_MMM_YYYY;
 
@@ -28,11 +30,14 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
     // ===========================================================
 
     private static final String LOG_TAG = TripAdapter.class.getSimpleName();
+    private static final int CONTENT_VIEW_TYPE = 0;
+    private static final int LOAD_MORE_VIEW_TYPE = 1;
 
     // ===========================================================
     // Fields
     // ===========================================================
 
+    private boolean showLoadMore;
     private ArrayList<Trip> mTripList;
     private OnItemClickListener mOnItemClickListener;
 
@@ -56,19 +61,40 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
-        View view = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.adapter_item_trip, viewGroup, false);
-        return new ViewHolder(view, mTripList, mOnItemClickListener);
+        int layout = 0;
+
+        switch (viewType) {
+
+            case CONTENT_VIEW_TYPE:
+                layout = R.layout.adapter_item_trip;
+                break;
+
+            case LOAD_MORE_VIEW_TYPE:
+                layout = R.layout.layout_pagination_preloader;
+                break;
+        }
+
+        View view = LayoutInflater.from(viewGroup.getContext()).inflate(layout, viewGroup, false);
+        return new ViewHolder(viewType, view, mTripList, mOnItemClickListener);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        holder.bindData();
+        if (position >= mTripList.size()) {
+            holder.bindLoadMoreData();
+        } else {
+            holder.bindContentData();
+        }
     }
 
     @Override
     public int getItemCount() {
-        return mTripList.size();
+        return showLoadMore && mTripList.size() > 0 ? mTripList.size() + 1 : mTripList.size();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return position >= mTripList.size() ? LOAD_MORE_VIEW_TYPE : CONTENT_VIEW_TYPE;
     }
 
     @Override
@@ -89,6 +115,60 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
     // Methods
     // ===========================================================
 
+    public void add(List<Trip> trips, boolean forceUpdate) {
+        if (trips == null || trips.isEmpty()) {
+            return;
+        }
+
+        if (forceUpdate) {
+            mTripList.clear();
+            mTripList.addAll(trips);
+            notifyDataSetChanged();
+        } else {
+            final int start = mTripList.size();
+            final int count = trips.size();
+
+            mTripList.addAll(trips);
+            notifyItemRangeInserted(start, count);
+        }
+    }
+
+    public void add(Trip trip) {
+        if (trip == null || !trip.isValid()) {
+            return;
+        }
+
+        final int start = mTripList.size();
+        mTripList.add(trip);
+        notifyItemInserted(start);
+    }
+
+    public void clear() {
+        final int start = 0;
+        final int count = mTripList.size();
+
+        if (count == 0) {
+            return;
+        }
+
+        mTripList.clear();
+        notifyItemRangeRemoved(start, count);
+    }
+
+    public void showLoadMore() {
+        if (getItemCount() == mTripList.size()) {
+            showLoadMore = true;
+            notifyItemInserted(mTripList.size() + 1);
+        }
+    }
+
+    public void removeLoadMore() {
+        if (getItemCount() > mTripList.size()) {
+            showLoadMore = false;
+            notifyItemRemoved(mTripList.size() + 1);
+        }
+    }
+
     // ===========================================================
     // Inner and Anonymous Classes
     // ===========================================================
@@ -103,19 +183,28 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
         TextView tvTripId;
         ImageView ivTripStatueLabel;
         CardView cvItemContainer;
+        ProgressBar pbLoadMore;
         OnItemClickListener onItemClickListener;
         ArrayList<Trip> tripList;
         TextView tvTripDraft;
 
-        ViewHolder(View itemView, ArrayList<Trip> tripList, OnItemClickListener onItemClickListener) {
+        ViewHolder(int type, View itemView, ArrayList<Trip> tripList, OnItemClickListener onItemClickListener) {
             super(itemView);
             this.tripList = tripList;
             this.onItemClickListener = onItemClickListener;
             this.context = itemView.getContext();
-            findViews(itemView);
+            switch (type) {
+                case CONTENT_VIEW_TYPE:
+                    findContentViews(itemView);
+                    break;
+
+                case LOAD_MORE_VIEW_TYPE:
+                    findLoadMoreViews(itemView);
+                    break;
+            }
         }
 
-        void findViews(View view) {
+        void findContentViews(View view) {
             tvTripTitle = (TextView) view.findViewById(R.id.tv_item_trip_title);
             tvTripPeriod = (TextView) view.findViewById(R.id.tv_item_trip_period);
             tvTripUserName = (TextView) view.findViewById(R.id.tv_item_trip_user_name);
@@ -126,13 +215,17 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
             cvItemContainer = (CardView) view.findViewById(R.id.cv_item_trip_container);
         }
 
-        void bindData() {
+        void findLoadMoreViews(View view) {
+            pbLoadMore = (ProgressBar) view.findViewById(R.id.pb_paginate);
+        }
+
+        void bindContentData() {
 
             if (tripList.get(getAdapterPosition()) == null || !tripList.get(getAdapterPosition()).isValid()) {
                 return;
             }
 
-            if (tripList.get(getAdapterPosition()).isNotSynced()){
+            if (tripList.get(getAdapterPosition()).isNotSynced()) {
                 tvTripDraft.setVisibility(View.VISIBLE);
             } else {
                 tvTripDraft.setVisibility(View.GONE);
@@ -244,6 +337,9 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
                     return true;
                 }
             });
+        }
+
+        void bindLoadMoreData() {
         }
     }
 

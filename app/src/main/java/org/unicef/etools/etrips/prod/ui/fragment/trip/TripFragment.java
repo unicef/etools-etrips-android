@@ -29,8 +29,6 @@ import org.unicef.etools.etrips.prod.ui.activity.CostAssignmentActivity;
 import org.unicef.etools.etrips.prod.ui.activity.TravelActivity;
 import org.unicef.etools.etrips.prod.ui.activity.TravelItineraryActivity;
 import org.unicef.etools.etrips.prod.ui.fragment.BaseFragment;
-import org.unicef.etools.etrips.prod.ui.fragment.SupervisedFragment;
-import org.unicef.etools.etrips.prod.ui.fragment.TripsFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.DateUtil;
@@ -238,11 +236,6 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
                 AppUtil.closeKeyboard(getActivity());
                 retrieveTripFromDb();
                 setData();
-                // notify trip list screens about changes
-                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.TRIPS_LOADED,
-                        TripsFragment.class.getSimpleName()));
-                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.TRIPS_LOADED,
-                        SupervisedFragment.class.getSimpleName()));
                 break;
 
             case Event.EventType.Api.Error.NO_NETWORK:
@@ -497,19 +490,19 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
 
         // dsa total amount
         mTvTripDsaTotal.setText(String.format(getString(R.string.text_cost_currency),
-                String.valueOf(dsaTotal), currency));
+                dsaTotal, currency));
 
         // expense total amount
         mTvTripExpenseTotal.setText(String.format(getString(R.string.text_cost_currency),
-                String.valueOf(expensesTotal), currency));
+                expensesTotal, currency));
 
         // deductions total amount
-        mTvTripDeducationsTotal.setText(String.format(getString(R.string.text_cost_currency),
-                String.valueOf(deductionsTotal), currency));
+        mTvTripDeducationsTotal.setText(String.format(getString(R.string.text_cost_currency_negative),
+                deductionsTotal, currency));
 
         // total amount cost
         mTvTripTotalCost.setText(String.format(getString(R.string.text_cost_currency),
-                String.valueOf(totalCost), currency));
+                totalCost, currency));
     }
 
     private void changeTripStatusRequest(String status) {

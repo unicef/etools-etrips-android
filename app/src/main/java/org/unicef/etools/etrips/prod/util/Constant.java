@@ -24,6 +24,7 @@ public class Constant {
         public static final String REPORT_PHOTO_URL = "REPORT_PHOTO_URL";
         public static final String REPORT_ATTACHMENT_ID = "REPORT_ATTACHMENT_ID";
         public static final String EXTRA_TRIP_POSITION = "EXTRA_TRIP_POSITION";
+        public static final String EXTRA_TRIPS_PAGE = "EXTRA_TRIPS_PAGE";
     }
 
     public class Bundle {

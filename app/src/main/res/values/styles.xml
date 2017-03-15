@@ -49,7 +49,7 @@
     </style>
 
     <style name="ProgressBar" parent="Widget.AppCompat.ProgressBar">
-        <item name="colorAccent">@color/color_0099ff</item>
+        <item name="colorControlActivated">@color/color_0099ff</item>
     </style>
 
     <style name="TabLayout" parent="Widget.Design.TabLayout">

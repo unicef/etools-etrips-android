@@ -1,19 +1,24 @@
 package org.unicef.etools.etrips.prod.io.rest.entity;
 
+
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
+import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 
 import java.util.ArrayList;
 
-public class ActionPointListResponse {
+public class TripListResponse {
 
+    @Expose
     @SerializedName("page_count")
     public int pageCount;
 
+    @Expose
     @SerializedName("data")
-    public ArrayList<ActionPoint> actionPoints;
+    public ArrayList<Trip> trips;
 
+    @Expose
     @SerializedName("total_count")
     public int totalCount;
 
@@ -35,9 +40,9 @@ public class ActionPointListResponse {
 
     @Override
     public String toString() {
-        return "ActionPointListResponse{" +
+        return "TripListResponse{" +
                 "pageCount=" + pageCount +
-                ", actionPoints=" + actionPoints +
+                ", actionPoints=" + trips +
                 ", totalCount=" + totalCount +
                 '}';
     }

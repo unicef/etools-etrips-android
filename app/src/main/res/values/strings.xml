@@ -72,7 +72,7 @@
     <string name="text_btn_auth_sign">Sign in</string>
     <string name="text_tv_report_photos">Photos</string>
     <string name="text_tv_report_photos_description">The photos below will be uploaded when the trip
-        report is submitted.
+        report is submitted for photos in report.
     </string>
     <string name="text_btn_report_submit">Submit report</string>
     <string name="text_tv_trip_traveler">Traveler</string>
@@ -116,7 +116,8 @@
     <string name="text_btn_add_action_point">Add action points</string>
     <string name="text_due_date">Due %s</string>
     <string name="text_assigned_by">Assigned by %s</string>
-    <string name="text_cost_currency" formatted="false">%s %s</string>
+    <string name="text_cost_currency" formatted="false">%.2f %s</string>
+    <string name="text_cost_currency_negative" formatted="false">- %.2f %s</string>
     <string name="text_chb_act_primary_traveler">Primary Traveler</string>
     <string name="text_tv_profile_username">Username</string>
     <string name="text_tv_profile_country">Country</string>

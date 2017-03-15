@@ -20,6 +20,7 @@ import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.bus.event.NetworkEvent;
+import org.unicef.etools.etrips.prod.io.rest.entity.ActionPointListResponse;
 import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
 import org.unicef.etools.etrips.prod.util.AppUtil;
@@ -57,6 +58,7 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
     private boolean shouldLoadAllEvents;
 
     private int mCurrentPage;
+    private int mTotalItemsCount;
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RealmResults<ActionPoint> mRealmActionPoints;
@@ -171,12 +173,16 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
             mActionPointAdapter.clear();
             mEmptyState.setVisibility(View.VISIBLE);
         } else {
-            final List<ActionPoint> page = getPageFromRealResults(element);
-            mActionPointAdapter.add(page, !isPaginationRequest());
-
+//            final List<ActionPoint> page = getPageFromRealResults(element);
+            mActionPointAdapter.add(element, true);
             if (mEmptyState.getVisibility() == View.VISIBLE) {
                 mEmptyState.setVisibility(View.GONE);
             }
+        }
+        if (mTotalItemsCount > mActionPointAdapter.getItemCount()) {
+            mActionPointAdapter.showLoadMore();
+        } else {
+            mActionPointAdapter.removeLoadMore();
         }
         finishLoading();
     }
@@ -236,6 +242,10 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
 
     private void handleApiEvents(ApiEvent event) {
         if (event.getEventType() == Event.EventType.Api.ACTION_POINTS_LOADED) {
+            ActionPointListResponse actionPointListResponse = (ActionPointListResponse) event.getEventData();
+            if (actionPointListResponse != null) {
+                mTotalItemsCount = actionPointListResponse.getTotalCount();
+            }
             // Add Realm change listener only one time. Then onChange will be called by Realm.
             if (mRealmActionPoints == null) {
                 retrieveActionPointsFromDb();
@@ -273,7 +283,8 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
                     String body = (String) event.getEventData();
                     if (body != null) {
                         SnackBarManager.show(getActivity(), body, SnackBarManager.Duration.LONG);
-                        if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_bad_request) + body);
+                        if (BuildConfig.isDEBUG)
+                            Log.i(LOG_TAG, getString(R.string.msg_bad_request) + body);
                     }
                     break;
 
@@ -351,6 +362,6 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
         return NetworkUtil.getInstance().isConnected(getActivity())
                 && !isLoading && (visibleCount + firstVisiblePosition) >= totalCount
                 && firstVisiblePosition >= 0
-                && totalCount >= APIUtil.PER_PAGE_ACTION_POINTS;
+                && mTotalItemsCount > totalCount;
     }
 }

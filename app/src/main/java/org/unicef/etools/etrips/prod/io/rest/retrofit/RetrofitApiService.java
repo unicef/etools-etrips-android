@@ -1,6 +1,8 @@
 package org.unicef.etools.etrips.prod.io.rest.retrofit;
 
 
+import com.google.gson.JsonObject;
+
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
@@ -58,6 +60,7 @@ public interface RetrofitApiService {
             @Header("Authorization") String authorization,
             @Query("page") int page,
             @Query("page_size") int perPage,
+            @Query("sort_by") String sortBy,
             @Query("f_person_responsible") long relatedUserId
     );
 
@@ -75,5 +78,25 @@ public interface RetrofitApiService {
             @Header("Authorization") String authorization,
             @Path("trip_id") long tripId,
             @Body ActionPointsWrapper actionPointsWrapper
+    );
+
+    @GET(APIUtil.TRIPS)
+    @Headers("Content-Type: application/json")
+    Call<JsonObject> getMyTrips(
+            @Header("Authorization") String authorization,
+            @Query("page") int page,
+            @Query("page_size") int perPage,
+            @Query("sort_by") String sortBy,
+            @Query("f_traveler") long relatedUserId
+    );
+
+    @GET(APIUtil.TRIPS)
+    @Headers("Content-Type: application/json")
+    Call<JsonObject> getSupervisedTrips(
+            @Header("Authorization") String authorization,
+            @Query("page") int page,
+            @Query("page_size") int perPage,
+            @Query("sort_by") String sortBy,
+            @Query("f_supervisor") long relatedUserId
     );
 }

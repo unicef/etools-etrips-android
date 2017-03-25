@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.unicef.etools.etrips.prod">
+<manifest package="org.unicef.etools.etrips.prod"
+          xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
         android:name=".app.ETApplication"
@@ -14,14 +14,12 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
         <meta-data
             android:name="net.hockeyapp.android.appIdentifier"
-            android:value="@string/hockey_app_id" />
-
+            android:value="@string/hockey_app_id"/>
         <meta-data
             android:name="net.hockeyapp.android.appSecret"
-            android:value="@string/hockey_app_secret" />
+            android:value="@string/hockey_app_secret"/>
 
         <provider
             android:name="android.support.v4.content.FileProvider"
@@ -30,12 +28,11 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
+                android:resource="@xml/provider_paths"/>
         </provider>
 
         <service
             android:name=".io.service.ETService"
-
             android:exported="false"/>
 
         <activity
@@ -43,61 +40,65 @@
             android:screenOrientation="portrait"
             android:theme="@style/SplashTheme">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
         <activity
             android:name=".ui.activity.MainActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/MainTheme" />
+            android:theme="@style/MainTheme"/>
         <activity
             android:name=".ui.activity.AuthActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AuthTheme" />
+            android:theme="@style/AuthTheme"/>
         <activity
             android:name=".ui.activity.ProfileActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
         <activity
             android:name=".ui.activity.TripActivity"
             android:screenOrientation="portrait"
             android:theme="@style/AdditionalScreensTheme"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize" />
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"/>
         <activity
             android:name=".ui.activity.CostAssignmentActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
         <activity
             android:name=".ui.activity.LanguageActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
         <activity
             android:name=".ui.activity.TravelItineraryActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
         <activity
             android:name=".ui.activity.ReportPhotoActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
         <activity
             android:name=".ui.activity.ReportPhotoPreviewActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/PhotoPreviewTheme" />
+            android:theme="@style/PhotoPreviewTheme"/>
         <activity
             android:name=".ui.activity.ActionPointActivity"
             android:screenOrientation="portrait"
             android:theme="@style/AdditionalScreensTheme"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"/>
         <activity
             android:name=".ui.activity.TravelActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
         <activity
             android:name=".ui.activity.UserStaticsActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AdditionalScreensTheme" />
+            android:theme="@style/AdditionalScreensTheme"/>
+        <activity
+            android:name=".ui.activity.LicenseActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AdditionalScreensTheme"/>
     </application>
 
 </manifest>

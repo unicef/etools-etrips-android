@@ -28,8 +28,8 @@ import org.unicef.etools.etrips.prod.ui.activity.TripActivity;
 import org.unicef.etools.etrips.prod.ui.adapter.TripAdapter;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
-import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
+import org.unicef.etools.etrips.prod.util.manager.CustomLinearLayoutManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.receiver.NetworkStateReceiver;
 import org.unicef.etools.etrips.prod.util.widget.EmptyState;
@@ -41,6 +41,10 @@ import io.realm.Realm;
 import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
 import io.realm.Sort;
+import retrofit2.Call;
+
+import static org.unicef.etools.etrips.prod.util.Constant.RequestMode.INITIAL;
+import static org.unicef.etools.etrips.prod.util.Constant.RequestMode.NEXT;
 
 public class SupervisedFragment extends BaseFragment implements
         SwipeRefreshLayout.OnRefreshListener, RealmChangeListener<RealmResults<Trip>>, TripAdapter.OnItemClickListener {
@@ -64,12 +68,15 @@ public class SupervisedFragment extends BaseFragment implements
 
     private int mCurrentPage;
     private int mTotalItemsCount;
+    private int mRequestMode;
 
     private TripAdapter mTripAdapter;
     private EmptyState mEmptyState;
     private RecyclerView mRvTrips;
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RealmResults<Trip> mRealmTrips;
+
+    private Call mTripsRequest;
 
     // ===========================================================
     // Constructors
@@ -119,7 +126,7 @@ public class SupervisedFragment extends BaseFragment implements
 
     private void initListComponents() {
         final LinearLayoutManager layoutManager
-                = new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false);
+                = new CustomLinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false);
         mRvTrips.setLayoutManager(layoutManager);
 
         mTripAdapter = new TripAdapter(new ArrayList<Trip>(), this);
@@ -134,7 +141,7 @@ public class SupervisedFragment extends BaseFragment implements
         }
 
         if (mCurrentPage == UNDEFINED_PAGE) {
-            loadTripsFromServer(FIRST_PAGE);
+            loadTripsFromServer(FIRST_PAGE, INITIAL);
         } else {
             isRestoringRequest = true;
             startLoading();
@@ -159,6 +166,9 @@ public class SupervisedFragment extends BaseFragment implements
         if (mRealmTrips != null) {
             mRealmTrips.removeChangeListener(this);
         }
+        if (mTripsRequest != null) {
+            mTripsRequest.cancel();
+        }
         Realm.getDefaultInstance().close();
         NetworkStateReceiver.unregisterBroadcast(getActivity());
 
@@ -166,6 +176,21 @@ public class SupervisedFragment extends BaseFragment implements
             mSwipeRefreshLayout.setRefreshing(false);
             mSwipeRefreshLayout.destroyDrawingCache();
             mSwipeRefreshLayout.clearAnimation();
+        }
+    }
+
+    private void dismissInitialRequest() {
+        if (!isLoading) {
+            return;
+        }
+        if (mRequestMode == INITIAL) {
+            if (mTripsRequest != null) {
+                mTripsRequest.cancel();
+            }
+            isLoading = false;
+            if (mSwipeRefreshLayout != null && mSwipeRefreshLayout.isRefreshing()) {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
         }
     }
 
@@ -180,6 +205,7 @@ public class SupervisedFragment extends BaseFragment implements
     @Override
     public void onItemClick(Trip trip) {
         if (trip != null && trip.isValid()) {
+            dismissInitialRequest();
             Intent intent = new Intent(getActivity(), TripActivity.class);
             intent.putExtra(Constant.Extra.EXTRA_TRIP_ID, trip.getId());
             startActivity(intent);
@@ -193,7 +219,7 @@ public class SupervisedFragment extends BaseFragment implements
 
     @Override
     public void onRefresh() {
-        loadTripsFromServer(FIRST_PAGE);
+        loadTripsFromServer(FIRST_PAGE, INITIAL);
     }
 
     @Override
@@ -214,6 +240,8 @@ public class SupervisedFragment extends BaseFragment implements
             mTripAdapter.showLoadMore();
         } else {
             mTripAdapter.removeLoadMore();
+            // reset saved total items count
+            mTotalItemsCount = 0;
         }
         finishLoading();
     }
@@ -255,7 +283,9 @@ public class SupervisedFragment extends BaseFragment implements
     @Subscribe
     public void onEventReceived(Event event) {
         if (event instanceof NetworkEvent) {
-            handleNetworkEvent((NetworkEvent) event);
+            if (event.getSubscriber().equals(getActivity().getClass().getSimpleName())) {
+                handleNetworkEvent((NetworkEvent) event);
+            }
         } else if (event instanceof ApiEvent) {
             if (event.getSubscriber().equals(getClass().getSimpleName())) {
                 handleApiEvents((ApiEvent) event);
@@ -266,7 +296,14 @@ public class SupervisedFragment extends BaseFragment implements
     private void handleNetworkEvent(NetworkEvent event) {
         switch (event.getEventType()) {
             case Event.EventType.Network.CONNECTED:
-                loadTripsFromServer(FIRST_PAGE);
+                switch (mRequestMode) {
+                    case INITIAL:
+                        loadTripsFromServer(FIRST_PAGE, INITIAL);
+                        break;
+                    case NEXT:
+                        loadTripsFromServer(mCurrentPage + 1, NEXT);
+                        break;
+                }
                 break;
         }
     }
@@ -286,6 +323,13 @@ public class SupervisedFragment extends BaseFragment implements
                 if (mRealmTrips.isEmpty()) {
                     mSwipeRefreshLayout.setRefreshing(false);
                 }
+            }
+
+            // for INITIAL mode move list to start position
+            switch (mRequestMode) {
+                case INITIAL:
+                    mRvTrips.getLayoutManager().scrollToPosition(0);
+                    break;
             }
         } else {
             finishLoading();
@@ -325,19 +369,20 @@ public class SupervisedFragment extends BaseFragment implements
                     break;
 
                 case Event.EventType.Api.Error.UNKNOWN:
-                    SnackBarManager.show(getActivity(), getString(R.string.msg_unknown_error),
-                            SnackBarManager.Duration.LONG);
+                    /*SnackBarManager.show(getActivity(), getString(R.string.msg_unknown_error),
+                            SnackBarManager.Duration.LONG);*/
                     if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_unknown_error));
                     break;
             }
         }
     }
 
-    private void loadTripsFromServer(int page) {
+    private void loadTripsFromServer(int page, int requestMode) {
+        mRequestMode = requestMode;
         mCurrentPage = page;
         startLoading();
 
-        RetrofitUtil.getSupervisedTrips(getActivity(), mCurrentPage,
+        mTripsRequest = RetrofitUtil.getSupervisedTrips(getActivity(), mCurrentPage,
                 Preference.getInstance(getActivity()).getUserId(), getClass().getSimpleName());
     }
 
@@ -385,14 +430,13 @@ public class SupervisedFragment extends BaseFragment implements
             final int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
             if (shouldPaginate(visibleItemCount, totalItemCount, firstVisibleItemPosition)) {
-                loadTripsFromServer(mCurrentPage + 1);
+                loadTripsFromServer(mCurrentPage + 1, NEXT);
             }
         }
     };
 
     private boolean shouldPaginate(int visibleCount, int totalCount, int firstVisiblePosition) {
-        return NetworkUtil.getInstance().isConnected(getActivity())
-                && !isLoading && (visibleCount + firstVisiblePosition) >= totalCount
+        return !isLoading && (visibleCount + firstVisiblePosition) >= totalCount
                 && firstVisiblePosition >= 0
                 && mTotalItemsCount > totalCount;
     }

@@ -31,20 +31,19 @@ import com.google.common.eventbus.Subscribe;
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.R;
 import org.unicef.etools.etrips.prod.db.entity.trip.Attachment;
+import org.unicef.etools.etrips.prod.db.entity.trip.LocalTrip;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.HttpRequestManager;
-import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
-import org.unicef.etools.etrips.prod.io.service.ETService;
 import org.unicef.etools.etrips.prod.ui.activity.ReportPhotoActivity;
 import org.unicef.etools.etrips.prod.ui.adapter.ReportPhotoAdapter;
 import org.unicef.etools.etrips.prod.ui.fragment.BaseFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.FileUtil;
+import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
@@ -56,7 +55,6 @@ import java.util.List;
 import io.realm.Realm;
 
 import static android.app.Activity.RESULT_OK;
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.TRIP;
 
 public class ReportFragment extends BaseFragment implements View.OnClickListener,
         ReportPhotoAdapter.OnItemClickListener, TextWatcher {
@@ -78,6 +76,7 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
     private long mTripId;
     private TextInputLayout mTilReportText;
     private EditText mEdtReportText;
+    private TextView mTvReportPhotosDescription;
     private Button mBtnAddPhoto;
     private Button mBtnSubmit;
     private Uri mCameraPhotoPath;
@@ -145,15 +144,10 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        saveDraftTrip();
         BusProvider.unregister(this);
         DialogManager.getInstance().dismissPreloader(getClass());
         Realm.getDefaultInstance().close();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        saveDraftTrip();
     }
 
 
@@ -163,10 +157,17 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
         Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
-                if (!mAttachmentArrayList.isEmpty()) {
-                    mTrip.getAttachments().clear();
-                    mTrip.getAttachments().addAll(mAttachmentArrayList);
-                    realm.copyToRealmOrUpdate(mTrip);
+                mTrip = realm.where(Trip.class).equalTo("id", mTripId).findFirst();
+                if (mTrip == null || !mTrip.isValid()) {
+                    return;
+                }
+                mTrip = realm.copyFromRealm(mTrip);
+                if (mTrip.isNotSynced()) {
+                    if (!mAttachmentArrayList.isEmpty()) {
+                        mTrip.getAttachments().clear();
+                        mTrip.getAttachments().addAll(mAttachmentArrayList);
+                        realm.copyToRealmOrUpdate(mTrip);
+                    }
                 }
             }
         });
@@ -258,9 +259,14 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_report_submit:
-                // crete trip report and send in server
-                mReportDescription = mEdtReportText.getText().toString();
-                grabDataAndSubmitReport();
+                if (NetworkUtil.getInstance().isConnected(getActivity())) {
+                    // crete trip report and send in server
+                    mReportDescription = mEdtReportText.getText().toString();
+                    grabDataAndSubmitReport();
+                } else {
+                    SnackBarManager.show(getActivity(), getString(R.string.msg_network_connection_error),
+                            SnackBarManager.Duration.LONG);
+                }
                 break;
 
             case R.id.btn_report_add_photo:
@@ -315,6 +321,21 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
                                 mTrip.getId()
                         );
                     }
+                } else {
+                    retrieveTripFromDb();
+                    mTrip.setNotSynced(false);
+                    Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            LocalTrip localTrip = realm.where(LocalTrip.class).equalTo("id", mTripId).findFirst();
+                            if (localTrip != null && localTrip.isValid()) {
+                                localTrip.deleteFromRealm();
+                            }
+                            realm.copyToRealmOrUpdate(mTrip);
+                        }
+                    });
+                    setData();
+                    DialogManager.getInstance().dismissPreloader(getClass());
                 }
                 break;
 
@@ -337,17 +358,17 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
                     Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
                         @Override
                         public void execute(Realm realm) {
+                            LocalTrip localTrip = realm.where(LocalTrip.class).equalTo("id", mTripId).findFirst();
+                            if (localTrip != null && localTrip.isValid()) {
+                                localTrip.deleteFromRealm();
+                            }
                             realm.copyToRealmOrUpdate(mTrip);
                         }
                     });
 
-                    // call server to retrieve updated trip
-                    ETService.start(
-                            getActivity(),
-                            getClass().getSimpleName(),
-                            APIUtil.getURL(String.format(TRIP, mTripId)),
-                            HttpRequestManager.RequestType.GET_TRIP
-                    );
+                    retrieveTripFromDb();
+                    setData();
+                    DialogManager.getInstance().dismissPreloader(getClass());
                 }
                 break;
 
@@ -505,6 +526,7 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
         mCvPhotosContainer = (CardView) view.findViewById(R.id.cv_report_photos);
         mBtnSubmit = (Button) view.findViewById(R.id.btn_report_submit);
         mRvReportPhotos = (RecyclerView) view.findViewById(R.id.rv_report_photos);
+        mTvReportPhotosDescription = (TextView) view.findViewById(R.id.tv_report_photos_description);
     }
 
     public void getData() {
@@ -518,6 +540,9 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
             @Override
             public void execute(Realm realm) {
                 mTrip = realm.where(Trip.class).equalTo("id", mTripId).findFirst();
+                if (mTrip == null || !mTrip.isValid()) {
+                    return;
+                }
                 mTrip = realm.copyFromRealm(mTrip);
             }
         });
@@ -548,6 +573,7 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
                 // hide 'Submit button' and 'Add photo' button
                 mBtnSubmit.setVisibility(View.GONE);
                 mBtnAddPhoto.setVisibility(View.GONE);
+                mTvReportPhotosDescription.setVisibility(View.GONE);
 
             } else if (mTrip.getReport() != null && !mTrip.getReport().isEmpty()) {
                 // disable edt
@@ -559,6 +585,7 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
                 if (mTrip.getAttachments().isEmpty()) {
                     mCvPhotosContainer.setVisibility(View.GONE);
                     mBtnSubmit.setVisibility(View.GONE);
+                    mTvReportPhotosDescription.setVisibility(View.GONE);
                 }
             }
         } else {
@@ -630,19 +657,29 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
     }
 
     private void saveDraftTrip() {
+        retrieveTripFromDb();
+        if (mTrip == null || !mTrip.isValid()) {
+            return;
+        }
         if (mTrip.isMyTrip()) {
             if (mTrip.isNotSynced()) {
-                mTrip.setReport(mEdtReportText.getText().toString());
-                if (!mEdtReportText.getText().toString().isEmpty() ||
-                        !mTrip.getAttachments().isEmpty()) {
-                    mTrip.setNotSynced(true);
-                } else {
-                    mTrip.setNotSynced(false);
-                }
                 Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
                     @Override
                     public void execute(Realm realm) {
-                        realm.copyToRealmOrUpdate(mTrip);
+                        mTrip.setReport(mEdtReportText.getText().toString());
+                        if (!mEdtReportText.getText().toString().isEmpty() ||
+                                !mTrip.getAttachments().isEmpty()) {
+                            mTrip.setNotSynced(true);
+                            realm.copyToRealmOrUpdate(mTrip);
+                            realm.copyToRealmOrUpdate(LocalTrip.buildFromTrip(mTrip));
+                        } else {
+                            mTrip.setNotSynced(false);
+                            LocalTrip localTrip = realm.where(LocalTrip.class).equalTo("id", mTripId).findFirst();
+                            if (localTrip != null && localTrip.isValid()) {
+                                localTrip.deleteFromRealm();
+                            }
+                            realm.copyToRealmOrUpdate(mTrip);
+                        }
                     }
                 });
 
@@ -655,6 +692,7 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
                         Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
                             @Override
                             public void execute(Realm realm) {
+                                realm.copyToRealmOrUpdate(LocalTrip.buildFromTrip(mTrip));
                                 realm.copyToRealmOrUpdate(mTrip);
                             }
                         });

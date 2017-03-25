@@ -1,17 +1,20 @@
 package org.unicef.etools.etrips.prod.io.rest.retrofit;
 
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
+import org.unicef.etools.etrips.prod.db.entity.trip.Attachment;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.io.rest.entity.ActionPointListResponse;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
 
+import java.util.HashMap;
+
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Field;
@@ -22,7 +25,6 @@ import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
-import retrofit2.http.PUT;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -31,7 +33,7 @@ import retrofit2.http.Url;
 public interface RetrofitApiService {
 
     @FormUrlEncoded
-    @PUT()
+    @PATCH()
     Call<Trip> updateTripReportDescription(
             @Header("Authorization") String authorization,
             @Field("report") String report,
@@ -41,12 +43,13 @@ public interface RetrofitApiService {
     @PATCH()
     Call<Trip> changeTripStatus(
             @Header("Authorization") String authorization,
+            @Body HashMap<String, Object> body,
             @Url String url
     );
 
     @Multipart
     @POST()
-    Call<ResponseBody> uploadTripReportFiles(
+    Call<Attachment> uploadTripReportFiles(
             @Header("Authorization") String authorization,
             @Part MultipartBody.Part file,
             @Part("name") RequestBody description,
@@ -98,5 +101,18 @@ public interface RetrofitApiService {
             @Query("page_size") int perPage,
             @Query("sort_by") String sortBy,
             @Query("f_supervisor") long relatedUserId
+    );
+
+    @GET(APIUtil.TRIP)
+    @Headers("Content-Type: application/json")
+    Call<JsonObject> getTrip(
+            @Header("Authorization") String authorization,
+            @Path("trip_id") long tripId
+    );
+
+    @GET(APIUtil.USERS)
+    @Headers("Content-Type: application/json")
+    Call<JsonArray> getUsers(
+            @Header("Authorization") String authorization
     );
 }

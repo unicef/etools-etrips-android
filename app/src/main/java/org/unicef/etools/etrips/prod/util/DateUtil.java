@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class DateUtil {
 
@@ -62,8 +63,24 @@ public class DateUtil {
 
     @NonNull
     public static String convertDatePickerResultToString(int year, int month, int day, String format) {
-        final Calendar calendar = Calendar.getInstance();
+        final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(year, month, day);
+
+        final int timeZone = calendar.getTimeZone().getRawOffset();
+        final long dateInMill = calendar.getTimeInMillis() + timeZone;
+        calendar.setTimeInMillis(dateInMill);
+
+        SimpleDateFormat formatter = new SimpleDateFormat(format, Locale.getDefault());
+        String dateString = formatter.format(calendar.getTime());
+
+        return String.valueOf(dateString.charAt(0)).toUpperCase()
+                + dateString.subSequence(1, dateString.length());
+    }
+
+    @NonNull
+    public static String convertDateToString(long timeInMillis, String format) {
+        final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.setTimeInMillis(timeInMillis);
 
         final int timeZone = calendar.getTimeZone().getRawOffset();
         final long dateInMill = calendar.getTimeInMillis() + timeZone;
@@ -105,9 +122,12 @@ public class DateUtil {
         if (today.get(Calendar.MONTH) > source.get(Calendar.MONTH)) {
             return true;
         }
-        if (today.get(Calendar.DAY_OF_MONTH) > source.get(Calendar.DAY_OF_MONTH)) {
-            return true;
+        if (today.get(Calendar.MONTH) == source.get(Calendar.MONTH)) {
+            if (today.get(Calendar.DAY_OF_MONTH) > source.get(Calendar.DAY_OF_MONTH)) {
+                return true;
+            }
         }
+
         return false;
     }
 

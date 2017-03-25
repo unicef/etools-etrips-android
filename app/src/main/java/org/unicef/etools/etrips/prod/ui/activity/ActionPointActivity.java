@@ -40,6 +40,7 @@ import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.DateUtil;
+import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.EmptyDialogClickListener;
@@ -75,8 +76,6 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
     // ===========================================================
     // Fields
     // ===========================================================
-
-    private boolean shouldReturnToRealm = true;
 
     @IdRes
     private int mClickedViewId;
@@ -253,20 +252,6 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
     protected void onDestroy() {
         super.onDestroy();
 
-        if (shouldReturnToRealm) {
-            Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
-                @Override
-                public void execute(Realm realm) {
-                    if (mOperation == EDIT) {
-                        realm.copyToRealmOrUpdate(mActionPoint);
-                    } else {
-                        realm.copyToRealmOrUpdate(mTrip);
-                    }
-                }
-            });
-            shouldReturnToRealm = false;
-        }
-
         BusProvider.unregister(this);
         Realm.getDefaultInstance().close();
         DialogManager.getInstance().dismissAlertDialog(getClass());
@@ -305,9 +290,15 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
 
     @Override
     public void onClick(View v) {
+        AppUtil.closeKeyboard(this);
         switch (v.getId()) {
             case R.id.btn_action_point_execute_operation:
-                executeOperation(mOperation);
+                if (NetworkUtil.getInstance().isConnected(this)) {
+                    executeOperation(mOperation);
+                } else {
+                    SnackBarManager.show(this, getString(R.string.msg_network_connection_error),
+                            SnackBarManager.Duration.LONG);
+                }
                 break;
             case R.id.tv_action_point_due_date:
             case R.id.tv_action_point_completed_date:
@@ -328,14 +319,35 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
                                 final String status = (String)
                                         lv.getAdapter().getItem(lv.getCheckedItemPosition());
 
+                                // handle change status action
+                                if (status != null) {
+                                    switch (status) {
+                                        case ActionPoint.Status.COMPLETED:
+                                            long currentTime = System.currentTimeMillis();
+                                            final String date = DateUtil.convertDateToString(
+                                                    currentTime, DateUtil.DD_MMM_YYYY);
+                                            final String serverDate = DateUtil.convertDateToString(
+                                                    currentTime, DateUtil.SERVER_FORMAT);
+                                            mActionPoint.setCompletedAt(serverDate);
+                                            mTvCompletedDate.setText(date);
+                                            break;
+
+                                        default:
+                                            mTvCompletedDate.setText(getString(R.string.hint_tv_action_point_date));
+                                            mEdtActionsTaken.setError(null);
+                                            mActionPoint.setCompletedAt(null);
+                                            break;
+                                    }
+                                }
+
                                 mActionPoint.setStatus(status);
                                 mTvStatus.setText(status);
                                 removeErrorColorIfNeeded(mTvStatus);
                             }
                         }, new EmptyDialogClickListener(),
-                        0,
+                        AppUtil.calculateStatusListItemPosition(mTvStatus.getText().toString(), mActionPointStatuses),
                         DialogManager.DialogIdentifier.STATUS_DIALOG,
-                        false
+                        true
                 );
                 break;
             case R.id.tv_action_point_person_responsible:
@@ -347,48 +359,53 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
 
     private void executeOperation(@Operation int op) {
         boolean isError = false;
-//        if (op == ADD) {
-            @ColorInt final int red = ContextCompat.getColor(this, R.color.color_ff4f4f);
+        @ColorInt final int red = ContextCompat.getColor(this, R.color.color_ff4f4f);
 
-            if (mActionPoint.getPersonResponsible() == ActionPoint.INVALID_ID) {
-                mTvPersonResponsible.setTextColor(red);
-                isError = true;
-            }
-            if (TextUtils.isEmpty(mEdtDescription.getText())) {
-                mEdtDescription.setError("Please, enter description.");
+        if (mActionPoint.getPersonResponsible() == ActionPoint.INVALID_ID) {
+            mTvPersonResponsible.setTextColor(red);
+            isError = true;
+        }
+        if (TextUtils.isEmpty(mEdtDescription.getText())) {
+            mEdtDescription.setError(getString(R.string.msg_edt_action_point_description_error));
+            isError = true;
+        } else {
+            mActionPoint.setDescription(mEdtDescription.getText().toString());
+        }
+        if (mActionPoint.getStatus() == null) {
+            mTvStatus.setTextColor(red);
+            isError = true;
+        } else {
+            if (mActionPoint.getStatus() != null && mActionPoint.getStatus().equals(ActionPoint.Status.COMPLETED)
+                    && TextUtils.isEmpty(mEdtActionsTaken.getText())) {
+                mEdtActionsTaken.setError(getString(R.string.msg_edt_action_point_actions_taken_error));
                 isError = true;
             } else {
-                mActionPoint.setDescription(mEdtDescription.getText().toString());
+                mActionPoint.setActionsTaken(mEdtActionsTaken.getText().toString());
             }
-            if (mActionPoint.getStatus() == null) {
-                mTvStatus.setTextColor(red);
-                isError = true;
-            }
+        }
 
-            final String emptyDate = getString(R.string.hint_tv_action_point_date);
-            final String dueDate = mTvDueDate.getText().toString();
+        final String emptyDate = getString(R.string.hint_tv_action_point_date);
+        final String dueDate = mTvDueDate.getText().toString();
 
-            if (dueDate.equals(emptyDate)) {
+        if (dueDate.equals(emptyDate)) {
+            mTvDueDate.setTextColor(red);
+            isError = true;
+        } else {
+            if (DateUtil.isDateOutdated(DateUtil.composeCalendarFromDate(dueDate))) {
                 mTvDueDate.setTextColor(red);
                 isError = true;
-            } else {
-                if (DateUtil.isDateOutdated(DateUtil.composeCalendarFromDate(dueDate))) {
-                    mTvDueDate.setTextColor(red);
-                    isError = true;
-                }
             }
-//        }
+        }
 
         if (isError) {
             return;
         }
 
         mActionPoint.setIsfollowUp(mSwcFollowUp.isChecked());
-        mActionPoint.setActionsTaken(mEdtActionsTaken.getText().toString());
 
         AppUtil.closeKeyboard(this);
         DialogManager.getInstance().showPreloader(this, getClass().getSimpleName());
-
+        mBtnExecuteOperation.setEnabled(false);
         if (op == ADD) {
             mTrip.getActionPoints().add(mActionPoint);
             RetrofitUtil.addActionPointToTrip(this, mTrip, getClass().getSimpleName());
@@ -453,6 +470,7 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
                     mTvStatus.setEnabled(false);
                     removeEditRightDrawable(mTvPersonResponsible);
                     removeEditRightDrawable(mTvDueDate);
+                    removeEditRightDrawable(mTvStatus);
                 }
             } else {
                 if (actionPoint.getAssignedBy() != Preference.getInstance(ActionPointActivity.this).getUserId()
@@ -461,6 +479,7 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
                     removeEditRightDrawable(mTvPersonResponsible);
                     removeEditRightDrawable(mTvDueDate);
                     removeEditRightDrawable(mTvCompletedDate);
+                    removeEditRightDrawable(mTvStatus);
                 } else if (actionPoint.getAssignedBy() != Preference.getInstance(ActionPointActivity.this).getUserId()) {
                     mTvPersonResponsible.setEnabled(false);
                     mEdtDescription.setEnabled(false);
@@ -468,7 +487,18 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
                     mTvStatus.setEnabled(false);
                     removeEditRightDrawable(mTvPersonResponsible);
                     removeEditRightDrawable(mTvDueDate);
+                    removeEditRightDrawable(mTvStatus);
                 }
+            }
+        } else if (actionPoint != null && actionPoint.isValid()) {
+            if (actionPoint.getAssignedBy() != Preference.getInstance(ActionPointActivity.this).getUserId()) {
+                mTvPersonResponsible.setEnabled(false);
+                mEdtDescription.setEnabled(false);
+                mTvDueDate.setEnabled(false);
+                mTvStatus.setEnabled(false);
+                removeEditRightDrawable(mTvPersonResponsible);
+                removeEditRightDrawable(mTvDueDate);
+                removeEditRightDrawable(mTvStatus);
             }
         }
     }
@@ -499,10 +529,10 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
 
     private void handleApiEvents(ApiEvent event) {
         DialogManager.getInstance().dismissPreloader(getClass());
+        mBtnExecuteOperation.setEnabled(true);
 
         if (event.getEventType() == Event.EventType.Api.ACTION_POINT_UPDATED
                 || event.getEventType() == Event.EventType.Api.ACTION_POINT_ADDED) {
-            shouldReturnToRealm = false;
 
             final Intent data = new Intent();
             if (mOperation == EDIT) {
@@ -551,10 +581,10 @@ public class ActionPointActivity extends BaseActivity implements View.OnClickLis
                 case Event.EventType.Api.Error.BAD_REQUEST:
                     String body = (String) event.getEventData();
                     if (body != null) {
-                        SnackBarManager.show(this, body, SnackBarManager.Duration.LONG);
                         if (BuildConfig.isDEBUG)
                             Log.i(LOG_TAG, getString(R.string.msg_bad_request) + body);
                     }
+                    SnackBarManager.show(this, getString(R.string.msg_verify_action_point), SnackBarManager.Duration.LONG);
                     break;
 
                 case Event.EventType.Api.Error.UNAUTHORIZED:

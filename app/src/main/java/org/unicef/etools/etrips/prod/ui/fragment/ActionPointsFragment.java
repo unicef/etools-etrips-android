@@ -25,7 +25,6 @@ import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
-import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.receiver.NetworkStateReceiver;
@@ -36,6 +35,10 @@ import java.util.List;
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
+import retrofit2.Call;
+
+import static org.unicef.etools.etrips.prod.util.Constant.RequestMode.INITIAL;
+import static org.unicef.etools.etrips.prod.util.Constant.RequestMode.NEXT;
 
 public class ActionPointsFragment extends BaseActionPointFragment implements
         SwipeRefreshLayout.OnRefreshListener, RealmChangeListener<RealmResults<ActionPoint>> {
@@ -59,9 +62,12 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
 
     private int mCurrentPage;
     private int mTotalItemsCount;
+    private int mRequestMode;
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RealmResults<ActionPoint> mRealmActionPoints;
+
+    private Call mActionPointsRequest;
 
     // ===========================================================
     // Constructors
@@ -117,7 +123,7 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
         }
 
         if (mCurrentPage == UNDEFINED_PAGE) {
-            loadActionPointsFromServer(FIRST_PAGE);
+            loadActionPointsFromServer(FIRST_PAGE, INITIAL);
         } else {
             isRestoringRequest = true;
             startLoading();
@@ -142,6 +148,9 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
         if (mRealmActionPoints != null) {
             mRealmActionPoints.removeChangeListener(this);
         }
+        if (mActionPointsRequest != null) {
+            mActionPointsRequest.cancel();
+        }
         Realm.getDefaultInstance().close();
         NetworkStateReceiver.unregisterBroadcast(getActivity());
 
@@ -152,9 +161,31 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
         }
     }
 
+    private void dismissInitialRequest() {
+        if (!isLoading) {
+            return;
+        }
+        if (mRequestMode == INITIAL) {
+            if (mActionPointsRequest != null) {
+                mActionPointsRequest.cancel();
+            }
+            isLoading = false;
+            if (mSwipeRefreshLayout != null && mSwipeRefreshLayout.isRefreshing()) {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        }
+    }
+
     // ===========================================================
     // Other Listeners, methods for/from Interfaces
     // ===========================================================
+
+    @Override
+    public void onItemClick(ActionPoint actionPoint, int position) {
+        dismissInitialRequest();
+        super.onItemClick(actionPoint, position);
+    }
+
 
     // ===========================================================
     // Click Listeners
@@ -162,7 +193,7 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
 
     @Override
     public void onRefresh() {
-        loadActionPointsFromServer(FIRST_PAGE);
+        loadActionPointsFromServer(FIRST_PAGE, INITIAL);
     }
 
     @Override
@@ -183,6 +214,8 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
             mActionPointAdapter.showLoadMore();
         } else {
             mActionPointAdapter.removeLoadMore();
+            // reset saved total items count
+            mTotalItemsCount = 0;
         }
         finishLoading();
     }
@@ -224,7 +257,9 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
     @Subscribe
     public void onEventReceived(Event event) {
         if (event instanceof NetworkEvent) {
-            handleNetworkEvent((NetworkEvent) event);
+            if (event.getSubscriber().equals(getActivity().getClass().getSimpleName())) {
+                handleNetworkEvent((NetworkEvent) event);
+            }
         } else if (event instanceof ApiEvent) {
             if (event.getSubscriber().equals(getClass().getSimpleName())) {
                 handleApiEvents((ApiEvent) event);
@@ -235,7 +270,14 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
     private void handleNetworkEvent(NetworkEvent event) {
         switch (event.getEventType()) {
             case Event.EventType.Network.CONNECTED:
-                loadActionPointsFromServer(FIRST_PAGE);
+                switch (mRequestMode) {
+                    case INITIAL:
+                        loadActionPointsFromServer(FIRST_PAGE, INITIAL);
+                        break;
+                    case NEXT:
+                        loadActionPointsFromServer(mCurrentPage + 1, NEXT);
+                        break;
+                }
                 break;
         }
     }
@@ -256,6 +298,14 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
                     mSwipeRefreshLayout.setRefreshing(false);
                 }
             }
+
+            // for INITIAL mode move list to start position
+            switch (mRequestMode) {
+                case INITIAL:
+                    mRvActionPoints.getLayoutManager().scrollToPosition(0);
+                    break;
+            }
+
         } else {
             finishLoading();
             if (isPaginationRequest()) {
@@ -294,19 +344,20 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
                     break;
 
                 case Event.EventType.Api.Error.UNKNOWN:
-                    SnackBarManager.show(getActivity(), getString(R.string.msg_unknown_error),
-                            SnackBarManager.Duration.LONG);
+//                    SnackBarManager.show(getActivity(), getString(R.string.msg_unknown_error),
+//                            SnackBarManager.Duration.LONG);
                     if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_unknown_error));
                     break;
             }
         }
     }
 
-    private void loadActionPointsFromServer(int page) {
+    private void loadActionPointsFromServer(int page, int requestMode) {
+        mRequestMode = requestMode;
         mCurrentPage = page;
         startLoading();
 
-        RetrofitUtil.getActionPoints(getActivity(), mCurrentPage,
+        mActionPointsRequest = RetrofitUtil.getActionPoints(getActivity(), mCurrentPage,
                 Preference.getInstance(getActivity()).getUserId(), getClass().getSimpleName());
     }
 
@@ -353,14 +404,13 @@ public class ActionPointsFragment extends BaseActionPointFragment implements
             final int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
             if (shouldPaginate(visibleItemCount, totalItemCount, firstVisibleItemPosition)) {
-                loadActionPointsFromServer(mCurrentPage + 1);
+                loadActionPointsFromServer(mCurrentPage + 1, NEXT);
             }
         }
     };
 
     private boolean shouldPaginate(int visibleCount, int totalCount, int firstVisiblePosition) {
-        return NetworkUtil.getInstance().isConnected(getActivity())
-                && !isLoading && (visibleCount + firstVisiblePosition) >= totalCount
+        return !isLoading && (visibleCount + firstVisiblePosition) >= totalCount
                 && firstVisiblePosition >= 0
                 && mTotalItemsCount > totalCount;
     }

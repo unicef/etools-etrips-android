@@ -1,52 +1,15 @@
 package org.unicef.etools.etrips.prod.db.entity.trip;
 
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
-
-import java.lang.reflect.Type;
 
 import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.annotations.Ignore;
 import io.realm.annotations.PrimaryKey;
 
-public class Trip extends RealmObject {
-
-    public static class Status {
-        public static final String PLANNED = "planned";
-        public static final String SUBMITTED = "submitted";
-        public static final String APPROVED = "approved";
-        public static final String COMPLETED = "completed";
-        public static final String CANCELLED = "cancelled";
-        public static final String REJECTED = "rejected";
-        public static final String CERTIFICATION_SUBMITTED = "certification_submitted";
-        public static final String CERTIFIED = "certified";
-        public static final String SENT_FOR_PAYMENT = "sent_for_payment";
-        public static final String CERTIFICATION_REJECTED = "certification_rejected";
-        public static final String CERTIFICATION_APPROVED = "certification_approved";
-    }
-
-    public static class StatusSend {
-        public static final String SUBMIT_FOR_APPROVAL = "submit_for_approval";
-        public static final String APPROVE = "approve";
-        public static final String REJECT = "reject";
-        public static final String CANCEL = "cancel";
-        public static final String PLAN = "plan";
-        public static final String SEND_FOR_PAYMENT = "send_for_payment";
-        public static final String SUBMIT_CERTIFICATE = "submit_certificate";
-        public static final String APPROVE_CERTIFICATE = "approve_certificate";
-        public static final String REJECT_CERTIFICATE = "reject_certificate";
-        public static final String MARK_AS_CERTIFIED = "mark_as_certified";
-        public static final String MARK_AS_COMPLETED = "mark_as_completed";
-    }
+public class LocalTrip extends RealmObject {
 
     @Ignore
     public long pk;
@@ -63,8 +26,6 @@ public class Trip extends RealmObject {
     // here saved traveler id
     @Expose(deserialize = false)
     public long traveler;
-
-    public boolean notSynced;
 
     private boolean isMyTrip;
 
@@ -186,23 +147,22 @@ public class Trip extends RealmObject {
     @SerializedName("action_points")
     public RealmList<ActionPoint> actionPoints;
 
-    public Trip() {
+    public LocalTrip() {
     }
 
-    public Trip(long pk, long id, String referenceNumber, long traveler, boolean notSynced, boolean isMyTrip,
-                String travelerName, String purpose, String status, int section, int office, String startDate,
-                String endDate, long supervisor, String supervisorName, boolean isInternationalTravel,
-                boolean isTaRequired, double estimatedTravelCost, long currency, String completedAt, String canceledAt,
-                String rejectionNote, String cancellationNote, String certificationNote, String report,
-                String additionalNote, String miscExpenses, RealmList<Itinerary> itineraries, RealmList<Expense> expenses,
-                RealmList<Deduction> deductions, RealmList<CostAssignment> costAssignments, Clearance clearances,
-                RealmList<Activity> activities, RealmList<Attachment> attachments, CostSummary costSummary,
-                RealmList<ActionPoint> actionPoints) {
+    public LocalTrip(long pk, long id, String referenceNumber, long traveler, boolean isMyTrip,
+                     String travelerName, String purpose, String status, int section, int office, String startDate,
+                     String endDate, long supervisor, String supervisorName, boolean isInternationalTravel,
+                     boolean isTaRequired, double estimatedTravelCost, long currency, String completedAt, String canceledAt,
+                     String rejectionNote, String cancellationNote, String certificationNote, String report,
+                     String additionalNote, String miscExpenses, RealmList<Itinerary> itineraries, RealmList<Expense> expenses,
+                     RealmList<Deduction> deductions, RealmList<CostAssignment> costAssignments, Clearance clearances,
+                     RealmList<Activity> activities, RealmList<Attachment> attachments, CostSummary costSummary,
+                     RealmList<ActionPoint> actionPoints) {
         this.pk = pk;
         this.id = id;
         this.referenceNumber = referenceNumber;
         this.traveler = traveler;
-        this.notSynced = notSynced;
         this.isMyTrip = isMyTrip;
         this.travelerName = travelerName;
         this.purpose = purpose;
@@ -242,14 +202,6 @@ public class Trip extends RealmObject {
 
     public void setMyTrip(boolean myTrip) {
         isMyTrip = myTrip;
-    }
-
-    public boolean isNotSynced() {
-        return notSynced;
-    }
-
-    public void setNotSynced(boolean notSynced) {
-        this.notSynced = notSynced;
     }
 
     public long getPk() {
@@ -524,25 +476,14 @@ public class Trip extends RealmObject {
         this.actionPoints = actionPoints;
     }
 
-    public static class TripDeserializer implements JsonDeserializer<Trip> {
-        @Override
-        public Trip deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-            Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
-            Trip trip = gson.fromJson(json, Trip.class);
-            JsonObject jsonObject = json.getAsJsonObject();
-            if (jsonObject.has("traveler")) {
-                JsonElement jsonElement = jsonObject.get("traveler");
-                if (jsonElement != null && !jsonElement.isJsonNull()) {
-                    try {
-                        trip.setTraveler(jsonElement.getAsLong());
-                    } catch (NumberFormatException exc) {
-                        trip.setTravelerName(jsonElement.getAsString());
-                    } catch (Exception exc) {
-                        exc.printStackTrace();
-                    }
-                }
-            }
-            return trip;
-        }
+    public static LocalTrip buildFromTrip(Trip trip) {
+        return trip != null && trip.isValid() ?
+                new LocalTrip(trip.getPk(), trip.getId(), trip.getReferenceNumber(), trip.getTraveler(), trip.isMyTrip(), trip.getTravelerName(),
+                        trip.getPurpose(), trip.status, trip.getSection(), trip.office, trip.getStartDate(), trip.endDate, trip.getSupervisor(), trip.getSupervisorName(),
+                        trip.isInternationalTravel(), trip.isTaRequired(), trip.estimatedTravelCost, trip.getCurrency(), trip.getCompletedAt(), trip.getCanceledAt(),
+                        trip.getRejectionNote(), trip.getCancellationNote(), trip.getCertificationNote(), trip.getReport(), trip.getAdditionalNote(), trip.getMiscExpenses(),
+                        trip.getItineraries(), trip.getExpenses(), trip.getDeductions(), trip.getCostAssignments(), trip.getClearances(), trip.getActivities(),
+                        trip.getAttachments(), trip.getCostSummary(), trip.getActionPoints())
+                : null;
     }
 }

@@ -529,6 +529,7 @@ public class ETService extends Service {
                             if (fromDateBase != null && fromDateBase.isValid()) {
                                 trip.setMyTrip(fromDateBase.isMyTrip());
                                 trip.setTravelerName(fromDateBase.getTravelerName());
+                                trip.setSupervisorName(fromDateBase.getSupervisorName());
                                 if (fromDateBase.isNotSynced()) {
                                     trip.setNotSynced(fromDateBase.isNotSynced());
 
@@ -541,6 +542,7 @@ public class ETService extends Service {
                                     }
                                 }
                             }
+                            AppUtil.addAssignedFullName(realm, trip.actionPoints);
                             realm.copyToRealmOrUpdate(trip);
                         }
                     });

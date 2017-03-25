@@ -14,15 +14,17 @@ import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.ui.activity.ActionPointActivity;
 import org.unicef.etools.etrips.prod.ui.adapter.ActionPointAdapter;
 import org.unicef.etools.etrips.prod.ui.fragment.BaseActionPointFragment;
-import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
+import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
+import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.widget.EmptyState;
 
 import io.realm.Realm;
+import io.realm.RealmChangeListener;
 
 public class TripActionPointsFragment extends BaseActionPointFragment implements View.OnClickListener,
-        ActionPointAdapter.OnItemClickListener {
+        RealmChangeListener<Trip>, ActionPointAdapter.OnItemClickListener {
 
     // ===========================================================
     // Constants
@@ -96,7 +98,7 @@ public class TripActionPointsFragment extends BaseActionPointFragment implements
     public void onDestroyView() {
         super.onDestroyView();
 
-        Realm.getDefaultInstance().close();
+        releaseResources();
     }
 
     // ===========================================================
@@ -107,11 +109,16 @@ public class TripActionPointsFragment extends BaseActionPointFragment implements
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_add_action_point:
-                final Intent intent = new Intent(getActivity(), ActionPointActivity.class);
-                intent.putExtra(
-                        Constant.Argument.ARGUMENT_ACTION_POINT_OPERATION, ActionPointActivity.ADD);
-                intent.putExtra(Constant.Argument.ARGUMENT_TRIP_ID, mTripId);
-                startActivityForResult(intent, REQUEST_CODE_ADD_ACTION_POINT);
+                if (NetworkUtil.getInstance().isConnected(getActivity())) {
+                    final Intent intent = new Intent(getActivity(), ActionPointActivity.class);
+                    intent.putExtra(
+                            Constant.Argument.ARGUMENT_ACTION_POINT_OPERATION, ActionPointActivity.ADD);
+                    intent.putExtra(Constant.Argument.ARGUMENT_TRIP_ID, mTripId);
+                    startActivity(intent);
+                } else {
+                    SnackBarManager.show(getActivity(), getString(R.string.msg_network_connection_error),
+                            SnackBarManager.Duration.LONG);
+                }
                 break;
         }
     }
@@ -119,6 +126,29 @@ public class TripActionPointsFragment extends BaseActionPointFragment implements
     // ===========================================================
     // Other Listeners, methods for/from Interfaces
     // ===========================================================
+
+    @Override
+    public void onChange(Trip element) {
+        if (element.getActionPoints() == null || !element.getActionPoints().isValid()) {
+            return;
+        }
+        if (element.getSupervisor() != Preference.getInstance(getActivity()).getUserId() || element.isMyTrip()) {
+            mBtnAddActionPoint.setVisibility(View.VISIBLE);
+        } else {
+            mBtnAddActionPoint.setVisibility(View.GONE);
+        }
+
+        if (element.getActionPoints().size() == 0) {
+            // There are no ActionPoints in our database, so clear our UI list and show empty state.
+            mActionPointAdapter.clear();
+            mEmptyState.setVisibility(View.VISIBLE);
+        } else {
+            mActionPointAdapter.add(element.getActionPoints().sort("dueDate"), true);
+            if (mEmptyState.getVisibility() == View.VISIBLE) {
+                mEmptyState.setVisibility(View.GONE);
+            }
+        }
+    }
 
     // ===========================================================
     // Methods
@@ -141,32 +171,15 @@ public class TripActionPointsFragment extends BaseActionPointFragment implements
     }
 
     private void retrieveTripFromDb() {
-        Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                mTrip = realm.where(Trip.class).equalTo("id", mTripId).findFirst();
+        mTrip = Realm.getDefaultInstance().where(Trip.class).equalTo("id", mTripId).findFirstAsync();
+        mTrip.addChangeListener(this);
+    }
 
-                if (mTrip == null || !mTrip.isValid()) {
-                    return;
-                }
-
-                if (mTrip.getSupervisor() != Preference.getInstance(getActivity()).getUserId() || mTrip.isMyTrip()) {
-                    mBtnAddActionPoint.setVisibility(View.VISIBLE);
-                } else {
-                    mBtnAddActionPoint.setVisibility(View.GONE);
-                }
-
-                if (mTrip.getActionPoints().size() > 0) {
-                    // TODO: it is temporary decision,
-                    // before full name will be added on Server side.
-                    // https://docs.google.com/document/d/1LrT3keXxudbgv725yVIdu6ZDQ6Hm5k71EeJisGKXWNw/edit - question 3.
-                    AppUtil.addAssignedFullName(realm, mTrip.getActionPoints());
-                    mActionPointAdapter.add(mTrip.getActionPoints().sort("dueDate"), true);
-                } else {
-                    mEmptyState.setVisibility(View.VISIBLE);
-                }
-            }
-        });
+    private void releaseResources() {
+        if (mTrip != null) {
+            mTrip.removeChangeListener(this);
+        }
+        Realm.getDefaultInstance().close();
     }
 
     // ===========================================================

@@ -1,6 +1,7 @@
 package org.unicef.etools.etrips.prod.ui.activity;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.MenuItem;
@@ -38,6 +39,7 @@ public class ProfileActivity extends BaseActivity implements View.OnClickListene
     private TextView mTvProfileOffice;
     private TextView mTvProfilePosition;
     private TextView mTvProfileLanguage;
+    private TextView mTvLicenses;
     private User mUser;
 
     // ===========================================================
@@ -107,6 +109,10 @@ public class ProfileActivity extends BaseActivity implements View.OnClickListene
                 );
                 break;
 
+            case R.id.tv_profile_licenses:
+                startActivity(new Intent(this, LicenseActivity.class));
+                break;
+
         }
     }
 
@@ -119,6 +125,7 @@ public class ProfileActivity extends BaseActivity implements View.OnClickListene
     // ===========================================================
 
     private void setListeners() {
+        mTvLicenses.setOnClickListener(this);
         mLlLogout.setOnClickListener(this);
     }
 
@@ -131,6 +138,7 @@ public class ProfileActivity extends BaseActivity implements View.OnClickListene
         mTvProfileCountry = (TextView) findViewById(R.id.tv_profile_country);
         mTvProfileOffice = (TextView) findViewById(R.id.tv_profile_office);
         mTvProfilePosition = (TextView) findViewById(R.id.tv_profile_position);
+        mTvLicenses = (TextView) findViewById(R.id.tv_profile_licenses);
     }
 
     private void customizeActionBar() {

@@ -39,7 +39,7 @@ public class ETApplication extends Application {
     public void onCreate() {
         super.onCreate();
         enableStrictMode();
-        LeakCanary.install(this);
+        initLeakCanary();
         initRealm();
     }
 
@@ -62,16 +62,19 @@ public class ETApplication extends Application {
 
     private void initRealm() {
         Realm.init(this);
-        //TODO set migration class in release version
         RealmConfiguration config = new RealmConfiguration.Builder()
-//                .schemaVersion(0) // Must be bumped when the schema changes
-//                .migration(new Migration()) // Migration to run instead of throwing an exception
                 .deleteRealmIfMigrationNeeded()
                 .build();
         Realm.setDefaultConfiguration(config);
     }
 
+    private void initLeakCanary() {
+        if (BuildConfig.BUILD_TYPE.equals(Constant.BuildType.DEBUG))
+            LeakCanary.install(this);
+    }
+
     // ===========================================================
     // Inner and Anonymous Classes
     // ===========================================================
+
 }

@@ -128,7 +128,8 @@
                         android:id="@+id/rv_report_photos"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_margin="10dp">
+                        android:layout_margin="10dp"
+                        android:splitMotionEvents="false">
 
                     </android.support.v7.widget.RecyclerView>
 

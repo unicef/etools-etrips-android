@@ -17,6 +17,7 @@
     <string name="screen_name_my_action_point">My Action Point</string>
     <string name="screen_name_travel_activity">Travel Activities</string>
     <string name="screen_name_user_static_activity">Users</string>
+    <string name="screen_name_licenses">Licenses</string>
 
     <!--util-->
     <string name="msg_network_connection_error">No Internet connection</string>
@@ -27,6 +28,9 @@
     <string name="msg_connection_error">Connection error</string>
     <string name="msg_navigation_drawer_open">Open navigation drawer</string>
     <string name="msg_navigation_drawer_close">Close navigation drawer</string>
+    <string name="msg_verify_action_point">Please verify action point. Some information is missing
+        or incorrect
+    </string>
 
     <!--Navigation drawer menu items-->
     <string name="text_nav_trips">My Trips</string>
@@ -41,7 +45,7 @@
     <string name="hint_ets_auth_languages">LANGUAGE</string>
     <string name="hint_edt_report_text">Report</string>
     <string name="hint_edt_action_point_description">Describe action point</string>
-    <string name="hint_edt_action_point_actions_taken">-</string>
+    <string name="hint_edt_action_point_actions_taken">Enter actions taken</string>
 
     <!--tv hints-->
     <string name="hint_tv_action_point_person_responsible">Select from list</string>
@@ -53,6 +57,8 @@
     <string name="msg_edt_pass_error">Enter password</string>
     <string name="msg_edt_description_error">Enter description</string>
     <string name="msg_edt_report_error">Enter report</string>
+    <string name="msg_edt_action_point_description_error">Please, enter description</string>
+    <string name="msg_edt_action_point_actions_taken_error">Please, enter actions taken</string>
 
     <!--other-->
     <string name="dialog_text_logout">Are you sure you want to logout?</string>
@@ -113,7 +119,7 @@
     <string name="text_edt_report_photo_description">Description</string>
     <string name="text_btn_report_photo_save">Save</string>
     <string name="text_btn_report_add_photo">Add</string>
-    <string name="text_btn_add_action_point">Add action points</string>
+    <string name="text_btn_add_action_point">Add action point</string>
     <string name="text_due_date">Due %s</string>
     <string name="text_assigned_by">Assigned by %s</string>
     <string name="text_cost_currency" formatted="false">%.2f %s</string>
@@ -157,6 +163,7 @@
     <string name="text_no_report">No report</string>
     <string name="text_rn">Rejection notes (optional)</string>
     <string name="draft">Draft</string>
+    <string name="text_tv_licenses">Open source licenses</string>
 
     <!--list of languages -->
     <string-array name="languages">

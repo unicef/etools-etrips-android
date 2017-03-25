@@ -28,6 +28,7 @@ public class Constant {
     }
 
     public class Bundle {
+        public static final String BUNDLE_SAVED_TOOLBAR_TITLE = "BUNDLE_SAVED_TOOLBAR_TITLE";
     }
 
     public class Symbol {

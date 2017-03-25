@@ -52,7 +52,7 @@ public class NetworkStateReceiver extends BroadcastReceiver {
         NetworkInfo activeNetwork = connectivityManager.getActiveNetworkInfo();
 
         if (activeNetwork != null) {
-            BusProvider.getInstance().post(new NetworkEvent(Event.EventType.Network.CONNECTED));
+            BusProvider.getInstance().post(new NetworkEvent(Event.EventType.Network.CONNECTED, context.getClass().getSimpleName()));
             unregisterBroadcast(context);
         }
     }

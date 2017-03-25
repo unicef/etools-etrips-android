@@ -48,6 +48,7 @@
                     android:layout_marginTop="4dp"
                     android:drawableRight="@drawable/ic_chevron_right"
                     android:gravity="center_vertical"
+                    android:textColor="@color/selector_black_text"
                     android:text="@string/hint_tv_action_point_person_responsible"
                     android:textSize="16sp" />
 
@@ -66,6 +67,7 @@
                     android:layout_marginTop="4dp"
                     android:hint="@string/hint_edt_action_point_description"
                     android:textSize="16sp"
+                    android:textColor="@color/selector_black_text"
                     android:theme="@style/EditText" />
 
                 <TextView
@@ -85,6 +87,7 @@
                     android:drawableRight="@drawable/ic_action_point_edit"
                     android:gravity="bottom"
                     android:text="@string/hint_tv_action_point_date"
+                    android:textColor="@color/selector_black_text"
                     android:textSize="16sp" />
 
                 <TextView
@@ -100,6 +103,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/hint_tv_action_point_status"
+                    android:drawableRight="@drawable/ic_chevron_right"
+                    android:textColor="@color/selector_black_text"
                     android:textSize="16sp" />
 
                 <TextView
@@ -116,7 +121,8 @@
                     android:layout_marginTop="4dp"
                     android:hint="@string/hint_edt_action_point_actions_taken"
                     android:textSize="16sp"
-                    android:theme="@style/EditText" />
+                    android:theme="@style/EditText"
+                    android:textColor="@color/selector_black_text"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -135,7 +141,8 @@
                     android:drawableRight="@drawable/ic_action_point_edit"
                     android:gravity="bottom"
                     android:text="@string/hint_tv_action_point_date"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:textColor="@color/selector_black_text"/>
 
                 <FrameLayout
                     android:layout_width="match_parent"

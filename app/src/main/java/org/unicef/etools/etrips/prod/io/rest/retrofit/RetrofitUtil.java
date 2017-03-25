@@ -11,12 +11,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
 import org.unicef.etools.etrips.prod.db.entity.trip.Attachment;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
+import org.unicef.etools.etrips.prod.db.entity.user.UserStatic;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
@@ -32,18 +34,20 @@ import org.unicef.etools.etrips.prod.util.Preference;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import id.zelory.compressor.Compressor;
 import io.realm.Realm;
+import io.realm.RealmList;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -82,7 +86,7 @@ public class RetrofitUtil {
     // Methods
     // ===========================================================
 
-    public static Call updateTripReportDescriptionRequest(final Context context, final String subscriber, Trip trip) {
+    public static Call updateTripReportDescriptionRequest(final Context context, final String subscriber, final Trip trip) {
 
         // Report submition consist of two parts:
         // first - we send report description on server
@@ -107,6 +111,29 @@ public class RetrofitUtil {
                 // if description sent successfully - upload all photos
                 if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
                     // update trip in db
+
+                    final Trip loadedTrip = response.body();
+
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            // first check  - is my or supervised trip and check traveler name, also check is draft
+                            Trip fromDateBase = realm.where(Trip.class).equalTo("id", loadedTrip.getId()).findFirst();
+                            if (fromDateBase != null && fromDateBase.isValid()) {
+                                loadedTrip.setMyTrip(fromDateBase.isMyTrip());
+                                loadedTrip.setTravelerName(fromDateBase.getTravelerName());
+                                loadedTrip.setSupervisorName(fromDateBase.getSupervisorName());
+
+                                AppUtil.checkDraftForTrip(realm, loadedTrip);
+                            }
+                            AppUtil.addAssignedFullName(realm, loadedTrip.actionPoints);
+                            // add
+                            realm.insertOrUpdate(loadedTrip);
+                        }
+                    });
+                    realm.close();
+
                     BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.REPORT_SUBMITTED,
                             subscriber));
 
@@ -129,7 +156,7 @@ public class RetrofitUtil {
     public static Call uploadTripReportFileRequest(@NonNull final Context context,
                                                    final Attachment attachment,
                                                    final String subscriber,
-                                                   long tripId) {
+                                                   final long tripId) {
 
         if (BuildConfig.isDEBUG) Log.i(LOG_TAG, "Calling URL: "
                 + APIUtil.getURL(String.format(UPLOAD_REPORT_FILE, tripId)));
@@ -145,7 +172,7 @@ public class RetrofitUtil {
         RequestBody type = RequestBody.create(MediaType.parse("text/plain"), "Picture");
 
         // if description submitted we can attach files
-        Call<ResponseBody> call = retrofitApiService.uploadTripReportFiles(
+        Call<Attachment> call = retrofitApiService.uploadTripReportFiles(
                 RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 MultipartBody.Part.createFormData("file", reportPhoto.getName(), requestFile),
                 description,
@@ -153,12 +180,32 @@ public class RetrofitUtil {
                 String.format(UPLOAD_REPORT_FILE, tripId)
         );
 
-        call.enqueue(new Callback<ResponseBody>() {
+        call.enqueue(new Callback<Attachment>() {
             @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+            public void onResponse(Call<Attachment> call, Response<Attachment> response) {
                 if (BuildConfig.isDEBUG) Log.i(LOG_TAG, "Response code: " + response.code());
 
                 if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_CREATED) {
+
+                    final Attachment body = response.body();
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            Trip trip = realm.where(Trip.class).equalTo("id", tripId).findFirst();
+                            if (trip.getAttachments() != null && trip.getAttachments().isValid()) {
+                                trip.getAttachments().add(body);
+                            } else {
+                                RealmList<Attachment> attachments = new RealmList<>();
+                                attachments.add(body);
+                                trip.setAttachments(attachments);
+                            }
+                            // add
+                            realm.insertOrUpdate(trip);
+                        }
+                    });
+                    realm.close();
+
                     BusProvider.getInstance().post(new ApiEvent<>(
                             Event.EventType.Api.REPORT_FILES_UPLOADED,
                             attachment.getId(),
@@ -171,7 +218,7 @@ public class RetrofitUtil {
             }
 
             @Override
-            public void onFailure(Call<ResponseBody> call, Throwable throwable) {
+            public void onFailure(Call<Attachment> call, Throwable throwable) {
                 throwable.printStackTrace();
                 handleFailedRequest(context, throwable, subscriber, call.request().body().toString(),
                         HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
@@ -180,15 +227,17 @@ public class RetrofitUtil {
         return call;
     }
 
-    public static Call changeTripStatusRequest(final Context context, final long tripId, String status, final String subscriber) {
+    public static Call changeTripStatusRequest(final Context context, final long tripId, String status,
+                                               HashMap<String, Object> body, final String subscriber) {
 
         if (BuildConfig.isDEBUG) Log.i(LOG_TAG, "Calling URL: "
                 + APIUtil.getURL(String.format(SUBMIT_REPORT, tripId)));
 
-        RetrofitApiService retrofitApiService = initRetrofit();
+        RetrofitApiService retrofitApiService = initRetrofit(GsonConverterFactory.create(new GsonBuilder().serializeNulls().create()));
 
         Call<Trip> call = retrofitApiService.changeTripStatus(
                 RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                body,
                 String.format(Locale.US, CHANGE_TRIP_STATUS, tripId, status)
         );
 
@@ -209,7 +258,11 @@ public class RetrofitUtil {
                                 if (fromDateBase != null && fromDateBase.isValid()) {
                                     loadedTrip.setMyTrip(fromDateBase.isMyTrip());
                                     loadedTrip.setTravelerName(fromDateBase.getTravelerName());
+                                    loadedTrip.setSupervisorName(fromDateBase.getSupervisorName());
+
+                                    AppUtil.checkDraftForTrip(realm, loadedTrip);
                                 }
+                                AppUtil.addAssignedFullName(realm, loadedTrip.actionPoints);
                                 // update trip in db
                                 realm.copyToRealmOrUpdate(loadedTrip);
                             }
@@ -277,9 +330,6 @@ public class RetrofitUtil {
                                 }
                             }
 
-                            // TODO: it is temporary decision,
-                            // before full name will be added on Server side.
-                            // https://docs.google.com/document/d/1LrT3keXxudbgv725yVIdu6ZDQ6Hm5k71EeJisGKXWNw/edit - question 3.
                             AppUtil.addAssignedFullName(realm, body.actionPoints);
                             realm.insertOrUpdate(body.actionPoints);
                         }
@@ -308,7 +358,7 @@ public class RetrofitUtil {
     public static Call updateActionPoint(@NonNull final Context context, @NonNull final ActionPoint actionPoint,
                                          final String subscriber) {
 
-        final RetrofitApiService retrofit = initRetrofit();
+        final RetrofitApiService retrofit = initRetrofit(GsonConverterFactory.create(new GsonBuilder().serializeNulls().create()));
         final Call<ActionPoint> call = retrofit.updateActionPoint(
                 RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 actionPoint.getId(), actionPoint);
@@ -331,9 +381,6 @@ public class RetrofitUtil {
                     realm.executeTransaction(new Realm.Transaction() {
                         @Override
                         public void execute(Realm realm) {
-                            // TODO: it is temporary decision,
-                            // before full name will be added on Server side.
-                            // https://docs.google.com/document/d/1LrT3keXxudbgv725yVIdu6ZDQ6Hm5k71EeJisGKXWNw/edit - question 3.
                             AppUtil.addAssignedFullName(realm, body);
                             realm.copyToRealmOrUpdate(body);
                         }
@@ -385,11 +432,20 @@ public class RetrofitUtil {
                     realm.executeTransaction(new Realm.Transaction() {
                         @Override
                         public void execute(Realm realm) {
-                            // TODO: it is temporary decision,
-                            // before full name will be added on Server side.
-                            // https://docs.google.com/document/d/1LrT3keXxudbgv725yVIdu6ZDQ6Hm5k71EeJisGKXWNw/edit - question 3.
                             AppUtil.addAssignedFullName(realm, body.actionPoints);
-                            realm.copyToRealmOrUpdate(body);
+
+                            // first check  - is my or supervised trip and check traveler name
+                            Trip fromDateBase = realm.where(Trip.class).equalTo("id", body.getId()).findFirst();
+                            if (fromDateBase != null && fromDateBase.isValid()) {
+                                body.setMyTrip(fromDateBase.isMyTrip());
+                                body.setTravelerName(fromDateBase.getTravelerName());
+                                body.setSupervisorName(fromDateBase.getSupervisorName());
+
+                                AppUtil.checkDraftForTrip(realm, body);
+                            }
+                            AppUtil.addAssignedFullName(realm, body.actionPoints);
+
+                            realm.insertOrUpdate(body);
                         }
                     });
                     realm.close();
@@ -398,9 +454,6 @@ public class RetrofitUtil {
                             = new ApiEvent<>(ApiEvent.EventType.Api.ACTION_POINT_ADDED, subscriber);
                     BusProvider.getInstance().post(event);
                 } else {
-                    // TODO: handleFailedRequest not working for 400
-                    // to reproduce change date format in ActionPointActivity for actionPoint.dueDate,
-                    // which is sending to server. (Method onDataSet).
                     try {
                         handleFailedRequest(context, null, subscriber, response.errorBody().string(),
                                 response.code());
@@ -418,92 +471,6 @@ public class RetrofitUtil {
             }
         });
         return call;
-    }
-
-    // ===========================================================
-    // Helper methods
-    // ===========================================================
-
-    public static RetrofitApiService initRetrofit() {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(20000, TimeUnit.SECONDS)
-                .readTimeout(20000, TimeUnit.SECONDS).build();
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(APIUtil.getHost())
-                .client(client)
-                .callbackExecutor(Executors.newSingleThreadExecutor())
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        return retrofit.create(RetrofitApiService.class);
-    }
-
-    private static void handleFailedRequest(Context context, Throwable throwable, String subscriber,
-                                            String responseBody, int responseCode) {
-        switch (responseCode) {
-            case HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR:
-                if (!NetworkUtil.getInstance().isConnected(context.getApplicationContext())) {
-                    if (BuildConfig.isDEBUG) Log.e(LOG_TAG, "Internet connection error");
-                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.NO_NETWORK,
-                            subscriber));
-
-                } else if (throwable.getMessage() != null && throwable.getMessage()
-                        .contains(HttpErrorUtil.NonNumericStatusCode.HTTP_SERVER_TIMEOUT)) {
-                    if (BuildConfig.isDEBUG) Log.e(LOG_TAG, "Connection time out");
-                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.SERVER_TIMEOUT,
-                            subscriber));
-
-                } else if (throwable.getMessage() != null && throwable.getMessage()
-                        .contains(HttpErrorUtil.NonNumericStatusCode.HTTP_CONNECTION_REFUSED)) {
-                    if (BuildConfig.isDEBUG) Log.e(LOG_TAG, "Connection refused by server");
-                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.CONNECTION_REFUSED,
-                            subscriber));
-                } else {
-                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.UNKNOWN,
-                            subscriber));
-                }
-                break;
-
-            case HttpErrorUtil.NumericStatusCode.HTTP_FORBIDDEN:
-            case HttpErrorUtil.NumericStatusCode.HTTP_UNAUTHORIZED:
-                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.UNAUTHORIZED,
-                        subscriber));
-                break;
-
-            case HttpErrorUtil.NumericStatusCode.HTTP_BAD_REQUEST:
-                if (responseBody.contains(Constant.Json.NON_FIELD_KEY)) {
-
-                    // parse errors
-                    JsonObject rootObject = new JsonParser().parse(responseBody).getAsJsonObject();
-                    JsonArray errors = rootObject.getAsJsonArray(Constant.Json.NON_FIELD_KEY);
-
-                    // compose errorText to show user
-                    StringBuilder errorText = new StringBuilder();
-                    for (JsonElement error : errors) {
-                        if (!errorText.toString().isEmpty())
-                            errorText.append(Constant.Symbol.COMMA);
-                        errorText.append(error.getAsString());
-                    }
-
-                    BusProvider.getInstance().post(new ApiEvent<>(Event.EventType.Api.Error.BAD_REQUEST,
-                            errorText.toString(), subscriber));
-
-                } else {
-                    BusProvider.getInstance().post(new ApiEvent<>(Event.EventType.Api.Error.BAD_REQUEST,
-                            responseBody, subscriber));
-                }
-                break;
-
-            case HttpErrorUtil.NumericStatusCode.HTTP_NOT_FOUND:
-                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.PAGE_NOT_FOUND,
-                        subscriber));
-                break;
-
-            default:
-                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.UNKNOWN,
-                        subscriber));
-                break;
-        }
     }
 
     public static Call getMyTrips(@NonNull final Context context, final int page, final long relatedUserId,
@@ -546,12 +513,6 @@ public class RetrofitUtil {
                         @Override
                         public void execute(Realm realm) {
 
-                            // get all drafts
-                            List<Trip> draftTrips = realm.copyFromRealm(Realm.getDefaultInstance()
-                                    .where(Trip.class)
-                                    .equalTo("notSynced", true)
-                                    .findAll());
-
                             if (page == 1) {
                                 boolean deleted = realm.where(Trip.class)
                                         .equalTo("isMyTrip", true)
@@ -564,30 +525,7 @@ public class RetrofitUtil {
                             }
 
                             // restore drafts
-                            for (Trip tripDraft : draftTrips) {
-                                for (int i = 0; i < body.trips.size(); i++) {
-                                    Trip trip = body.trips.get(i);
-                                    if (trip.getId() == tripDraft.getId()) {
-
-                                        if (tripDraft.isNotSynced()) {
-                                            trip.setNotSynced(tripDraft.isNotSynced());
-
-                                            if (tripDraft.getReport() != null) {
-                                                trip.setReport(tripDraft.getReport());
-                                            }
-                                            if (tripDraft.getAttachments() != null) {
-                                                trip.setAttachments(tripDraft.getAttachments()/*realm.copyFromRealm(tripDraft).getAttachments()*/);
-                                            }
-
-//                                        trip.setNotSynced(tripDraft.isNotSynced());
-//                                        trip.setReport(tripDraft.getReport());
-//                                        trip.setAttachments(tripDraft.getAttachments());
-                                            body.trips.set(i, trip);
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
+                            AppUtil.restoreDrafts(realm, body.trips);
 
                             // add
                             realm.insertOrUpdate(body.trips);
@@ -686,5 +624,239 @@ public class RetrofitUtil {
             }
         });
         return call;
+    }
+
+    public static Call getTrip(@NonNull final Context context, final long tripId,
+                               final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<JsonObject> call = retrofit.getTrip(
+                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(), tripId);
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    if (BuildConfig.isDEBUG) {
+                        Log.d(LOG_TAG, "getTrip: " + response.body().toString());
+                    }
+
+                    // divide traveler id and traveler name
+                    Gson gson = new GsonBuilder()
+                            .registerTypeAdapter(Trip.class, new Trip.TripDeserializer())
+                            .excludeFieldsWithoutExposeAnnotation()
+                            .create();
+
+                    final Trip trip = gson.fromJson(response.body(), Trip.class);
+
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            // first check  - is my or supervised trip and check traveler name, also check is draft
+                            Trip fromDateBase = realm.where(Trip.class).equalTo("id", trip.getId()).findFirst();
+                            if (fromDateBase != null && fromDateBase.isValid()) {
+                                trip.setMyTrip(fromDateBase.isMyTrip());
+                                trip.setTravelerName(fromDateBase.getTravelerName());
+                                trip.setSupervisorName(fromDateBase.getSupervisorName());
+
+                                AppUtil.checkDraftForTrip(realm, trip);
+                            }
+                            AppUtil.addAssignedFullName(realm, trip.actionPoints);
+                            // add
+                            realm.insertOrUpdate(trip);
+                        }
+                    });
+                    realm.close();
+
+                } else {
+                    handleFailedRequest(context, null, subscriber, response.errorBody().toString(),
+                            response.code());
+                }
+                final ApiEvent event
+                        = new ApiEvent<>(ApiEvent.EventType.Api.TRIP_LOADED, subscriber);
+                BusProvider.getInstance().post(event);
+            }
+
+            @Override
+            public void onFailure(Call<JsonObject> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    public static Call getUsers(@NonNull final Context context,
+                                final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<JsonArray> call = retrofit.getUsers(
+                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken());
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<JsonArray>() {
+            @Override
+            public void onResponse(Call<JsonArray> call, Response<JsonArray> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    Type listType = new TypeToken<ArrayList<UserStatic>>() {
+                    }.getType();
+                    final ArrayList<UserStatic> userStatics = new Gson().fromJson(response.body()
+                            .toString(), listType);
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            boolean deleted = realm.where(UserStatic.class)
+                                    .findAll()
+                                    .deleteAllFromRealm();
+
+                            if (BuildConfig.isDEBUG && deleted) {
+                                Log.d(LOG_TAG, "Users cleared.");
+                            }
+
+                            // add
+                            realm.insertOrUpdate(userStatics);
+                        }
+                    });
+                    realm.close();
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.USERS_LOADED, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonArray> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    // ===========================================================
+    // Helper methods
+    // ===========================================================
+
+    public static RetrofitApiService initRetrofit() {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(20000, TimeUnit.SECONDS)
+                .readTimeout(20000, TimeUnit.SECONDS).build();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(APIUtil.getHost())
+                .client(client)
+                .callbackExecutor(Executors.newSingleThreadExecutor())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        return retrofit.create(RetrofitApiService.class);
+    }
+
+    public static RetrofitApiService initRetrofit(GsonConverterFactory gsonConverterFactory) {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(20000, TimeUnit.SECONDS)
+                .readTimeout(20000, TimeUnit.SECONDS).build();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(APIUtil.getHost())
+                .client(client)
+                .callbackExecutor(Executors.newSingleThreadExecutor())
+                .addConverterFactory(gsonConverterFactory)
+                .build();
+
+        return retrofit.create(RetrofitApiService.class);
+    }
+
+    private static void handleFailedRequest(Context context, Throwable throwable, String subscriber,
+                                            String responseBody, int responseCode) {
+        switch (responseCode) {
+            case HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR:
+                if (!NetworkUtil.getInstance().isConnected(context.getApplicationContext())) {
+                    if (BuildConfig.isDEBUG) Log.e(LOG_TAG, "Internet connection error");
+                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.NO_NETWORK,
+                            subscriber));
+
+                } else if (throwable.getMessage() != null && throwable.getMessage()
+                        .contains(HttpErrorUtil.NonNumericStatusCode.HTTP_SERVER_TIMEOUT)) {
+                    if (BuildConfig.isDEBUG) Log.e(LOG_TAG, "Connection time out");
+                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.SERVER_TIMEOUT,
+                            subscriber));
+
+                } else if (throwable.getMessage() != null && throwable.getMessage()
+                        .contains(HttpErrorUtil.NonNumericStatusCode.HTTP_CONNECTION_REFUSED)) {
+                    if (BuildConfig.isDEBUG) Log.e(LOG_TAG, "Connection refused by server");
+                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.CONNECTION_REFUSED,
+                            subscriber));
+                } else {
+                    BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.UNKNOWN,
+                            subscriber));
+                }
+                break;
+
+            case HttpErrorUtil.NumericStatusCode.HTTP_FORBIDDEN:
+            case HttpErrorUtil.NumericStatusCode.HTTP_UNAUTHORIZED:
+                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.UNAUTHORIZED,
+                        subscriber));
+                break;
+
+            case HttpErrorUtil.NumericStatusCode.HTTP_BAD_REQUEST:
+                if (responseBody.contains(Constant.Json.NON_FIELD_KEY)) {
+
+                    // parse errors
+                    JsonObject rootObject = new JsonParser().parse(responseBody).getAsJsonObject();
+                    JsonArray errors = rootObject.getAsJsonArray(Constant.Json.NON_FIELD_KEY);
+
+                    // compose errorText to show user
+                    StringBuilder errorText = new StringBuilder();
+                    for (JsonElement error : errors) {
+                        if (!errorText.toString().isEmpty())
+                            errorText.append(Constant.Symbol.COMMA);
+                        errorText.append(error.getAsString());
+                    }
+
+                    BusProvider.getInstance().post(new ApiEvent<>(Event.EventType.Api.Error.BAD_REQUEST,
+                            errorText.toString(), subscriber));
+
+                } else {
+                    BusProvider.getInstance().post(new ApiEvent<>(Event.EventType.Api.Error.BAD_REQUEST,
+                            responseBody, subscriber));
+                }
+                break;
+
+            case HttpErrorUtil.NumericStatusCode.HTTP_NOT_FOUND:
+                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.PAGE_NOT_FOUND,
+                        subscriber));
+                break;
+
+            default:
+                BusProvider.getInstance().post(new ApiEvent(Event.EventType.Api.Error.UNKNOWN,
+                        subscriber));
+                break;
+        }
     }
 }

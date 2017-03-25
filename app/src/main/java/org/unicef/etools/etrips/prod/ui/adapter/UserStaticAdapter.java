@@ -86,6 +86,7 @@ public class UserStaticAdapter extends RecyclerView.Adapter<UserStaticAdapter.Vi
             return;
         }
 
+        mUserStatics.clear();
         mUserStatics.addAll(userStatics);
         notifyDataSetChanged();
     }

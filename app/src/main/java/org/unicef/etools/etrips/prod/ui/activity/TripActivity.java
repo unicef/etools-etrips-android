@@ -15,9 +15,7 @@ import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.bus.event.NetworkEvent;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.HttpRequestManager;
-import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
-import org.unicef.etools.etrips.prod.io.service.ETService;
+import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.ui.adapter.TabFragmentAdapter;
 import org.unicef.etools.etrips.prod.ui.fragment.trip.ReportFragment;
 import org.unicef.etools.etrips.prod.ui.fragment.trip.TripActionPointsFragment;
@@ -28,8 +26,7 @@ import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.receiver.NetworkStateReceiver;
 
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.TRIP;
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.getURL;
+import retrofit2.Call;
 
 public class TripActivity extends BaseActivity implements View.OnClickListener {
 
@@ -39,6 +36,7 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
 
     private static final String LOG_TAG = TripActivity.class.getSimpleName();
     public static final int DEFAULT_VALUE_TRIP_ID = 0;
+    public static final int OFFSCREEN_PAGE_LIMIT = 3;
 
     // ===========================================================
     // Fields
@@ -46,6 +44,7 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
 
     private long mTripId;
     private ViewPager mViewPager;
+    private Call mTripRequest;
 
     // ===========================================================
     // Constructors
@@ -66,7 +65,7 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
         setListeners();
         init();
         getData();
-        loadTripFromServer(true, APIUtil.getURL(String.format(TRIP, mTripId)));
+        loadTripFromServer(true);
     }
 
     @Override
@@ -87,6 +86,9 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mTripRequest != null) {
+            mTripRequest.cancel();
+        }
         BusProvider.unregister(this);
         NetworkStateReceiver.unregisterBroadcast(this);
     }
@@ -98,8 +100,9 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
     @Subscribe
     public void onEventReceived(Event event) {
         if (event instanceof NetworkEvent) {
-            handleNetworkEvent((NetworkEvent) event);
-
+            if (event.getSubscriber().equals(getClass().getSimpleName())) {
+                handleNetworkEvent((NetworkEvent) event);
+            }
         } else if (event instanceof ApiEvent) {
             if (event.getSubscriber().equals(getClass().getSimpleName())) {
                 handleApiEvents((ApiEvent) event);
@@ -114,7 +117,7 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
     private void handleNetworkEvent(NetworkEvent event) {
         switch (event.getEventType()) {
             case Event.EventType.Network.CONNECTED:
-                loadTripFromServer(true, getURL(String.format(TRIP, mTripId)));
+                loadTripFromServer(true);
                 break;
         }
     }
@@ -128,6 +131,9 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
                 break;
 
             case Event.EventType.Api.Error.NO_NETWORK:
+                // Try load all events from database in case of lack of internet.
+                setupTabs();
+
                 NetworkStateReceiver.registerBroadcast(this);
                 SnackBarManager.show(this, getString(R.string.msg_network_connection_error),
                         SnackBarManager.Duration.LONG);
@@ -205,22 +211,18 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
             fragmentAdapter.addFragment(TripActionPointsFragment.newInstance(mTripId),
                     getString(R.string.tab_text_action_points));
 
+            mViewPager.setOffscreenPageLimit(OFFSCREEN_PAGE_LIMIT);
             mViewPager.setAdapter(fragmentAdapter);
             getTabLayout().setupWithViewPager(mViewPager);
         }
     }
 
-    private void loadTripFromServer(boolean showPreloader, String apiUrl) {
+    private void loadTripFromServer(boolean showPreloader) {
         // call server to retrieve single trip
-        if(showPreloader) {
+        if (showPreloader) {
             DialogManager.getInstance().showPreloader(this, getClass().getSimpleName());
         }
-        ETService.start(
-                this,
-                getClass().getSimpleName(),
-                apiUrl,
-                HttpRequestManager.RequestType.GET_TRIP
-        );
+        mTripRequest = RetrofitUtil.getTrip(this, mTripId, getClass().getSimpleName());
     }
 
     // ===========================================================

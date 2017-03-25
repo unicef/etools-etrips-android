@@ -2,11 +2,11 @@ package org.unicef.etools.etrips.prod.ui.adapter;
 
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.app.FragmentStatePagerAdapter;
 
 import java.util.ArrayList;
 
-public class TabFragmentAdapter extends FragmentPagerAdapter {
+public class TabFragmentAdapter extends FragmentStatePagerAdapter {
 
     private static final String LOG_TAG = TabFragmentAdapter.class.getSimpleName();
 

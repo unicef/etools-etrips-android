@@ -95,6 +95,10 @@ public abstract class BaseActivity extends AppCompatActivity {
         mTvToolbarTitle.setText(title);
     }
 
+    public String getActionBarTitle() {
+        return mTvToolbarTitle != null ? mTvToolbarTitle.getText().toString() : null;
+    }
+
     public void setActionBarSubTitle(String subtitle) {
         mTvSubToolbarTitle.setVisibility(View.VISIBLE);
         mTvSubToolbarTitle.setText(subtitle);

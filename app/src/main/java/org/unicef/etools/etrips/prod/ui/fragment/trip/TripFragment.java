@@ -25,6 +25,7 @@ import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
+import org.unicef.etools.etrips.prod.io.rest.url_connection.util.PostEntityUtil;
 import org.unicef.etools.etrips.prod.ui.activity.CostAssignmentActivity;
 import org.unicef.etools.etrips.prod.ui.activity.TravelActivity;
 import org.unicef.etools.etrips.prod.ui.activity.TravelItineraryActivity;
@@ -32,6 +33,7 @@ import org.unicef.etools.etrips.prod.ui.fragment.BaseFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.DateUtil;
+import org.unicef.etools.etrips.prod.util.NetworkUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.StringUtils;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
@@ -175,36 +177,44 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
                 break;
 
             case R.id.btn_trip_submit:
-                if (mTrip != null && mTrip.isValid() && mTrip.getStatus() != null) {
-                    switch (mTrip.getStatus()) {
-                        case Trip.Status.PLANNED:
-                            changeTripStatusRequest(Trip.StatusSend.SUBMIT_FOR_APPROVAL);
-                            break;
+                if (NetworkUtil.getInstance().isConnected(getActivity())) {
+                    if (mTrip != null && mTrip.isValid() && mTrip.getStatus() != null) {
+                        switch (mTrip.getStatus()) {
+                            case Trip.Status.PLANNED:
+                                changeTripStatusRequest(Trip.StatusSend.SUBMIT_FOR_APPROVAL);
+                                break;
 
-                        case Trip.Status.SUBMITTED:
-                            changeTripStatusRequest(Trip.StatusSend.APPROVE);
-                            break;
+                            case Trip.Status.SUBMITTED:
+                                changeTripStatusRequest(Trip.StatusSend.APPROVE);
+                                break;
 
-                        case Trip.Status.CERTIFICATION_SUBMITTED:
-                            changeTripStatusRequest(Trip.StatusSend.APPROVE_CERTIFICATE);
-                            break;
+                            case Trip.Status.CERTIFICATION_SUBMITTED:
+                                changeTripStatusRequest(Trip.StatusSend.APPROVE_CERTIFICATE);
+                                break;
+                        }
                     }
+                } else {
+                    SnackBarManager.show(getActivity(), getString(R.string.msg_network_connection_error),
+                            SnackBarManager.Duration.LONG);
                 }
                 break;
 
             case R.id.btn_trip_reject:
-                if (mTrip != null && mTrip.isValid() && mTrip.getStatus() != null) {
-                    switch (mTrip.getStatus()) {
-                        case Trip.Status.SUBMITTED:
-                            mTrip.setRejectionNote(mEdtRn.getText().toString().trim());
-                            changeTripStatusRequest(Trip.StatusSend.REJECT);
-                            break;
+                if (NetworkUtil.getInstance().isConnected(getActivity())) {
+                    if (mTrip != null && mTrip.isValid() && mTrip.getStatus() != null) {
+                        switch (mTrip.getStatus()) {
+                            case Trip.Status.SUBMITTED:
+                                changeTripStatusRequest(Trip.StatusSend.REJECT);
+                                break;
 
-                        case Trip.Status.CERTIFICATION_SUBMITTED:
-                            mTrip.setRejectionNote(mEdtRn.getText().toString().trim());
-                            changeTripStatusRequest(Trip.StatusSend.REJECT_CERTIFICATE);
-                            break;
+                            case Trip.Status.CERTIFICATION_SUBMITTED:
+                                changeTripStatusRequest(Trip.StatusSend.REJECT_CERTIFICATE);
+                                break;
+                        }
                     }
+                } else {
+                    SnackBarManager.show(getActivity(), getString(R.string.msg_network_connection_error),
+                            SnackBarManager.Duration.LONG);
                 }
                 break;
         }
@@ -229,10 +239,10 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
 
     private void handleApiEvents(ApiEvent event) {
         DialogManager.getInstance().dismissPreloader(getClass());
+        setStusButtonsEnabled(true);
 
         switch (event.getEventType()) {
             case Event.EventType.Api.TRIP_STATUS_CHANGED:
-                DialogManager.getInstance().dismissPreloader(getClass());
                 AppUtil.closeKeyboard(getActivity());
                 retrieveTripFromDb();
                 setData();
@@ -344,7 +354,7 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
         if (mSupervisor != null && mSupervisor.isValid()) {
             mTvTripSuperviser.setText(mSupervisor.getFullName());
         } else {
-            mTvTripTraveler.setText(mTrip.getSupervisorName());
+            mTvTripSuperviser.setText(mTrip.getSupervisorName());
         }
 
         // traveler group
@@ -506,13 +516,20 @@ public class TripFragment extends BaseFragment implements View.OnClickListener {
     }
 
     private void changeTripStatusRequest(String status) {
+        setStusButtonsEnabled(false);
         DialogManager.getInstance().showPreloader(getActivity(), getClass().getSimpleName());
         RetrofitUtil.changeTripStatusRequest(
                 getActivity(),
                 mTripId,
                 status,
+                PostEntityUtil.composeChangeStatusEntity(mEdtRn.getText().toString()),
                 TripFragment.class.getSimpleName()
         );
+    }
+
+    private void setStusButtonsEnabled(boolean enabled) {
+        mBtnTripReject.setEnabled(enabled);
+        mBtnTripSubmit.setEnabled(enabled);
     }
 
     // ===========================================================

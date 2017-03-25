@@ -33,6 +33,7 @@ import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 
 import io.realm.Realm;
 
+import static org.unicef.etools.etrips.prod.util.Constant.Bundle.BUNDLE_SAVED_TOOLBAR_TITLE;
 import static org.unicef.etools.etrips.prod.util.manager.SnackBarManager.show;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener,
@@ -72,8 +73,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,
         setListeners();
         customizeActionBar();
         initDrawer();
-        if (savedInstanceState == null)
+        if (savedInstanceState == null) {
             openScreen(TripsFragment.newInstance(), getString(R.string.text_nav_trips));
+        } else {
+            setActionBarTitle(savedInstanceState.getString(BUNDLE_SAVED_TOOLBAR_TITLE));
+        }
     }
 
     @Override
@@ -102,6 +106,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString(BUNDLE_SAVED_TOOLBAR_TITLE, getActionBarTitle());
+        super.onSaveInstanceState(outState);
     }
 
     // ===========================================================

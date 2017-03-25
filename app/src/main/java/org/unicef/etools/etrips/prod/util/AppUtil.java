@@ -5,6 +5,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.TypedArray;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.view.inputmethod.InputMethodManager;
 
@@ -27,6 +28,7 @@ import org.unicef.etools.etrips.prod.db.entity.static_data.data_2.Wbs;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
 import org.unicef.etools.etrips.prod.db.entity.trip.CostSummary;
 import org.unicef.etools.etrips.prod.db.entity.trip.Dsa;
+import org.unicef.etools.etrips.prod.db.entity.trip.LocalTrip;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.db.entity.user.UserStatic;
 import org.unicef.etools.etrips.prod.ui.activity.AuthActivity;
@@ -133,6 +135,9 @@ public class AppUtil {
                 realm.delete(Region.class);
                 realm.delete(Wbs.class);
 
+                realm.delete(Trip.class);
+                realm.delete(ActionPoint.class);
+                realm.delete(LocalTrip.class);
             }
         });
 
@@ -188,6 +193,56 @@ public class AppUtil {
         }
     }
 
+    public static void restoreDrafts(@NonNull Realm realm, @NonNull ArrayList<Trip> trips) {
+        if (realm.isClosed()) {
+            return;
+        }
+        for (Trip trip : trips) {
+            LocalTrip localTrip = realm.where(LocalTrip.class).equalTo("id", trip.getId()).findFirst();
+            if (localTrip != null && localTrip.isValid()) {
+
+                trip.setNotSynced(true);
+
+                if (localTrip.getReport() != null) {
+                    trip.setReport(localTrip.getReport());
+                }
+
+                if (localTrip.getAttachments() != null) {
+                    trip.setAttachments(localTrip.getAttachments());
+                }
+            }
+        }
+    }
+
+    public static void checkDraftForTrip(@NonNull Realm realm, @NonNull Trip trip) {
+        if (realm.isClosed()) {
+            return;
+        }
+        LocalTrip localTrip = realm.where(LocalTrip.class).equalTo("id", trip.getId()).findFirst();
+
+        // check case when report from server is not empty
+        if (trip.getReport() != null && !trip.getReport().isEmpty()) {
+            trip.setNotSynced(false);
+            if (localTrip != null && localTrip.isValid()) {
+                localTrip.deleteFromRealm();
+            }
+        } else {
+            if (trip.getAttachments() != null && !trip.getAttachments().isEmpty()) {
+                trip.setAttachments(null);
+            }
+            if (localTrip != null && localTrip.isValid()) {
+                trip.setNotSynced(true);
+                if (localTrip.getReport() != null) {
+                    trip.setReport(localTrip.getReport());
+                }
+
+                if (localTrip.getAttachments() != null) {
+                    trip.setAttachments(realm.copyFromRealm(localTrip).getAttachments());
+                }
+            }
+        }
+    }
+
     public static String findElementFromXml(String xml, String elem) {
         try {
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -211,5 +266,17 @@ public class AppUtil {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static int calculateStatusListItemPosition(String status, List<ActionPointStatus> statusList) {
+        if (status == null || statusList == null) {
+            return 0;
+        }
+        for (ActionPointStatus actionPointStatus : statusList) {
+            if (status.equalsIgnoreCase(actionPointStatus.getStatus())) {
+                return statusList.indexOf(actionPointStatus);
+            }
+        }
+        return 0;
     }
 }

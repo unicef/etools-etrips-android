@@ -1,9 +1,9 @@
 package org.unicef.etools.etrips.prod.ui.adapter;
 
 
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,83 +12,34 @@ import android.widget.TextView;
 import org.unicef.etools.etrips.prod.R;
 import org.unicef.etools.etrips.prod.db.entity.user.UserStatic;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.realm.OrderedRealmCollection;
+import io.realm.RealmRecyclerViewAdapter;
 
-public class UserStaticAdapter extends RecyclerView.Adapter<UserStaticAdapter.ViewHolder> {
-
-    // ===========================================================
-    // Constants
-    // ===========================================================
+public class UserStaticAdapter extends RealmRecyclerViewAdapter<UserStatic, UserStaticAdapter.ViewHolder> {
 
     private static final String LOG_TAG = UserStaticAdapter.class.getSimpleName();
 
-    // ===========================================================
-    // Fields
-    // ===========================================================
-
-    private ArrayList<UserStatic> mUserStatics;
-    private OnItemClickListener mOnItemClickListener;
-
-    // ===========================================================
-    // Constructors
-    // ===========================================================
-
-    public UserStaticAdapter(ArrayList<UserStatic> userStatics, OnItemClickListener onItemClickListener) {
-        mUserStatics = userStatics;
-        mOnItemClickListener = onItemClickListener;
+    public UserStaticAdapter(@Nullable OrderedRealmCollection<UserStatic> data) {
+        super(data, false);
+        setHasStableIds(true);
     }
 
-    // ===========================================================
-    // Getter & Setter
-    // ===========================================================
-
-    // ===========================================================
-    // Methods for/from SuperClass
-    // ===========================================================
-
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
-        View view = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.adapter_item_user_static, viewGroup, false);
-        return new ViewHolder(view, mUserStatics, mOnItemClickListener);
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.adapter_item_user_static, parent, false);
+        return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        holder.bindData();
+        holder.bindData(getItem(position));
     }
 
     @Override
-    public int getItemCount() {
-        return mUserStatics.size();
-    }
-
-    @Override
-    public void onAttachedToRecyclerView(RecyclerView recyclerView) {
-        super.onAttachedToRecyclerView(recyclerView);
-    }
-
-    // ===========================================================
-    // Other Listeners, methods for/from Interfaces
-    // ===========================================================
-
-    // ===========================================================
-    // Click Listeners
-    // ===========================================================
-
-    // ===========================================================
-    // Methods
-    // ===========================================================
-
-    public void add(List<UserStatic> userStatics) {
-        if (userStatics == null || userStatics.isEmpty()) {
-            return;
-        }
-
-        mUserStatics.clear();
-        mUserStatics.addAll(userStatics);
-        notifyDataSetChanged();
+    public long getItemId(int index) {
+        //noinspection ConstantConditions
+        return getItem(index).getId();
     }
 
     // ===========================================================
@@ -97,65 +48,21 @@ public class UserStaticAdapter extends RecyclerView.Adapter<UserStaticAdapter.Vi
 
     static class ViewHolder extends RecyclerView.ViewHolder {
 
-        OnItemClickListener onItemClickListener;
-        ArrayList<UserStatic> userStatics;
-
         TextView tvUserFullName;
 
-        ViewHolder(View itemView, final ArrayList<UserStatic> userStatics, final OnItemClickListener onItemClickListener) {
+        ViewHolder(View itemView) {
             super(itemView);
-
-            this.userStatics = userStatics;
-            this.onItemClickListener = onItemClickListener;
             findViews(itemView);
-            setListeners(itemView);
         }
 
         void findViews(View view) {
             tvUserFullName = (TextView) view.findViewById(R.id.tv_item_user_full_name);
         }
 
-        void setListeners(View view) {
-            view.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (getAdapterPosition() == RecyclerView.NO_POSITION) {
-                        Log.e(LOG_TAG, "onClick with position == -1.");
-                        return;
-                    }
-                    onItemClickListener.onItemClick(userStatics.get(getAdapterPosition()));
-                }
-            });
-
-            view.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    if (getAdapterPosition() == RecyclerView.NO_POSITION) {
-                        Log.e(LOG_TAG, "onLongClick with position == -1.");
-                        return false;
-                    }
-                    onItemClickListener.onItemLongClick(userStatics.get(getAdapterPosition()));
-                    return true;
-                }
-            });
-        }
-
-        void bindData() {
-            final UserStatic user = userStatics.get(getAdapterPosition());
-            if (!user.isValid()) {
-                return;
-            }
-
-            final String name = !TextUtils.isEmpty(user.getFullName())
-                    ? user.getFullName() : user.getUsername();
+        void bindData(UserStatic userStatic) {
+            final String name = !TextUtils.isEmpty(userStatic.getFullName())
+                    ? userStatic.getFullName() : userStatic.getUsername();
             tvUserFullName.setText(name);
         }
-    }
-
-    public interface OnItemClickListener {
-
-        void onItemClick(UserStatic userStatic);
-
-        void onItemLongClick(UserStatic userStatic);
     }
 }

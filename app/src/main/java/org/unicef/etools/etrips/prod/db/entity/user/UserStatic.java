@@ -9,10 +9,16 @@ import io.realm.annotations.PrimaryKey;
 public class UserStatic extends RealmObject {
 
     @PrimaryKey
-    @SerializedName("user_id")
+    @SerializedName("id")
     private long id;
 
-    @SerializedName("full_name")
+    @SerializedName("first_name")
+    private String firstName;
+
+    @SerializedName("last_name")
+    private String lastName;
+
+    @SerializedName("name")
     private String fullName;
 
     @SerializedName("username")
@@ -24,8 +30,10 @@ public class UserStatic extends RealmObject {
     public UserStatic() {
     }
 
-    public UserStatic(long id, String fullName, String username, String email) {
+    public UserStatic(long id, String firstName, String lastName, String fullName, String username, String email) {
         this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.fullName = fullName;
         this.username = username;
         this.email = email;
@@ -37,6 +45,22 @@ public class UserStatic extends RealmObject {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getFullName() {

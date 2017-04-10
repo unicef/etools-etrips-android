@@ -116,19 +116,18 @@ public class DateUtil {
     public static boolean isDateOutdated(Calendar source) {
         final Calendar today = Calendar.getInstance();
 
-        if (today.get(Calendar.YEAR) > source.get(Calendar.YEAR)) {
-            return true;
-        }
-        if (today.get(Calendar.MONTH) > source.get(Calendar.MONTH)) {
-            return true;
-        }
-        if (today.get(Calendar.MONTH) == source.get(Calendar.MONTH)) {
-            if (today.get(Calendar.DAY_OF_MONTH) > source.get(Calendar.DAY_OF_MONTH)) {
-                return true;
-            }
-        }
+        // compare only dates without time part
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+        today.set(Calendar.MILLISECOND, 0);
 
-        return false;
+        source.set(Calendar.HOUR_OF_DAY, 0);
+        source.set(Calendar.MINUTE, 0);
+        source.set(Calendar.SECOND, 0);
+        source.set(Calendar.MILLISECOND, 0);
+
+        return today.after(source);
     }
 
 }

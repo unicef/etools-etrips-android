@@ -1,4 +1,4 @@
-package org.unicef.etools.etrips.prod.io.rest.url_connection.util;
+package org.unicef.etools.etrips.prod.io.rest.util;
 
 import android.util.Log;
 

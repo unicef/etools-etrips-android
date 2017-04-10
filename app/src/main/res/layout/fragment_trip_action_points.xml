@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
               android:animateLayoutChanges="true"
               android:clickable="true"
               android:orientation="vertical">
@@ -12,6 +13,8 @@
         android:layout_weight="1">
 
         <android.support.v7.widget.RecyclerView
+            app:theme="@style/ScrollBarStyle"
+            android:scrollbars="vertical"
             android:id="@+id/rv_trip_action_points_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

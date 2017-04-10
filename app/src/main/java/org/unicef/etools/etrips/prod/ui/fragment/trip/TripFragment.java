@@ -25,7 +25,7 @@ import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.util.PostEntityUtil;
+import org.unicef.etools.etrips.prod.io.rest.util.PostEntityUtil;
 import org.unicef.etools.etrips.prod.ui.activity.CostAssignmentActivity;
 import org.unicef.etools.etrips.prod.ui.activity.TravelActivity;
 import org.unicef.etools.etrips.prod.ui.activity.TravelItineraryActivity;

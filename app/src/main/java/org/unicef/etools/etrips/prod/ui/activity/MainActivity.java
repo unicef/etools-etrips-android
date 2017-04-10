@@ -18,10 +18,13 @@ import com.google.common.eventbus.Subscribe;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.R;
+import org.unicef.etools.etrips.prod.db.entity.user.UserStatic;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
+import org.unicef.etools.etrips.prod.io.bus.event.ChangeDataEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.bus.event.NetworkEvent;
+import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.ui.fragment.ActionPointsFragment;
 import org.unicef.etools.etrips.prod.ui.fragment.SupervisedFragment;
 import org.unicef.etools.etrips.prod.ui.fragment.TripsFragment;
@@ -32,7 +35,10 @@ import org.unicef.etools.etrips.prod.util.manager.FragmentTransactionManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 
 import io.realm.Realm;
+import io.realm.RealmResults;
+import retrofit2.Call;
 
+import static org.unicef.etools.etrips.prod.io.bus.event.Event.EventType.ChangeData.STOP_LOADING_USERS;
 import static org.unicef.etools.etrips.prod.util.Constant.Bundle.BUNDLE_SAVED_TOOLBAR_TITLE;
 import static org.unicef.etools.etrips.prod.util.manager.SnackBarManager.show;
 
@@ -52,6 +58,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,
     private DrawerLayout mDrawerLayout;
     private NavigationView mNavigationView;
     private TextView mTvUserName;
+
+    private Call mUserStaticRequest;
 
     // ===========================================================
     // Constructors
@@ -73,10 +81,20 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,
         setListeners();
         customizeActionBar();
         initDrawer();
+        loadUsersInBackground();
+
         if (savedInstanceState == null) {
             openScreen(TripsFragment.newInstance(), getString(R.string.text_nav_trips));
         } else {
             setActionBarTitle(savedInstanceState.getString(BUNDLE_SAVED_TOOLBAR_TITLE));
+        }
+    }
+
+    private void loadUsersInBackground() {
+        // load user in background
+        RealmResults<UserStatic> users = Realm.getDefaultInstance().where(UserStatic.class).findAll();
+        if (users == null || users.size() == 0) {
+            mUserStaticRequest = RetrofitUtil.getUsers(this, getClass().getSimpleName());
         }
     }
 
@@ -89,6 +107,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mUserStaticRequest != null) {
+            mUserStaticRequest.cancel();
+        }
         BusProvider.unregister(this);
         DialogManager.getInstance().dismissAlertDialog(getClass());
         Realm.getDefaultInstance().close();
@@ -127,12 +148,24 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,
             if (event.getSubscriber().equals(getClass().getSimpleName())) {
                 handleApiEvents((ApiEvent) event);
             }
+        } else if (event instanceof ChangeDataEvent) {
+            handleChangeDataEvent((ChangeDataEvent) event);
         }
     }
 
     // ===========================================================
     // Observer methods
     // ===========================================================
+
+    private void handleChangeDataEvent(ChangeDataEvent event) {
+        switch (event.getEventType()) {
+            case STOP_LOADING_USERS:
+                if (mUserStaticRequest != null) {
+                    mUserStaticRequest.cancel();
+                }
+                break;
+        }
+    }
 
     private void handleNetworkEvent(NetworkEvent event) {
         switch (event.getEventType()) {

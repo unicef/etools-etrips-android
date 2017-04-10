@@ -3,6 +3,7 @@ package org.unicef.etools.etrips.prod.io.rest.retrofit;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.util.Base64;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -14,19 +15,24 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
+import org.unicef.etools.etrips.prod.db.entity.static_data.data.ActionPointStatus;
+import org.unicef.etools.etrips.prod.db.entity.static_data.data.Data;
+import org.unicef.etools.etrips.prod.db.entity.static_data.data_2.Currency;
+import org.unicef.etools.etrips.prod.db.entity.static_data.data_2.Data2;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
 import org.unicef.etools.etrips.prod.db.entity.trip.Attachment;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
+import org.unicef.etools.etrips.prod.db.entity.user.User;
 import org.unicef.etools.etrips.prod.db.entity.user.UserStatic;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.rest.entity.ActionPointListResponse;
 import org.unicef.etools.etrips.prod.io.rest.entity.TripListResponse;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.RestHttpClient;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
 import org.unicef.etools.etrips.prod.io.rest.util.HttpErrorUtil;
+import org.unicef.etools.etrips.prod.io.rest.util.PostEntityUtil;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.NetworkUtil;
@@ -48,12 +54,14 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.CHANGE_TRIP_STATUS;
 import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.SUBMIT_REPORT;
 import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.UPLOAD_REPORT_FILE;
@@ -65,6 +73,8 @@ public class RetrofitUtil {
     // ===========================================================
 
     private static final String LOG_TAG = RetrofitUtil.class.getSimpleName();
+
+    public static final String TOKEN_VALUE = "JWT ";
 
     // ===========================================================
     // Fields
@@ -98,7 +108,7 @@ public class RetrofitUtil {
         RetrofitApiService retrofitApiService = initRetrofit();
 
         Call<Trip> call = retrofitApiService.updateTripReportDescription(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 trip.getReport(),
                 String.format(SUBMIT_REPORT, trip.getId())
         );
@@ -127,7 +137,6 @@ public class RetrofitUtil {
 
                                 AppUtil.checkDraftForTrip(realm, loadedTrip);
                             }
-                            AppUtil.addAssignedFullName(realm, loadedTrip.actionPoints);
                             // add
                             realm.insertOrUpdate(loadedTrip);
                         }
@@ -173,7 +182,7 @@ public class RetrofitUtil {
 
         // if description submitted we can attach files
         Call<Attachment> call = retrofitApiService.uploadTripReportFiles(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 MultipartBody.Part.createFormData("file", reportPhoto.getName(), requestFile),
                 description,
                 type,
@@ -236,7 +245,7 @@ public class RetrofitUtil {
         RetrofitApiService retrofitApiService = initRetrofit(GsonConverterFactory.create(new GsonBuilder().serializeNulls().create()));
 
         Call<Trip> call = retrofitApiService.changeTripStatus(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 body,
                 String.format(Locale.US, CHANGE_TRIP_STATUS, tripId, status)
         );
@@ -262,7 +271,6 @@ public class RetrofitUtil {
 
                                     AppUtil.checkDraftForTrip(realm, loadedTrip);
                                 }
-                                AppUtil.addAssignedFullName(realm, loadedTrip.actionPoints);
                                 // update trip in db
                                 realm.copyToRealmOrUpdate(loadedTrip);
                             }
@@ -295,7 +303,7 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<ActionPointListResponse> call = retrofit.getActionPoints(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 page, APIUtil.PER_PAGE_ACTION_POINTS, APIUtil.SortBy.DUE_DATE, relatedUserId);
 
         if (BuildConfig.isDEBUG) {
@@ -330,7 +338,6 @@ public class RetrofitUtil {
                                 }
                             }
 
-                            AppUtil.addAssignedFullName(realm, body.actionPoints);
                             realm.insertOrUpdate(body.actionPoints);
                         }
                     });
@@ -360,7 +367,7 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit(GsonConverterFactory.create(new GsonBuilder().serializeNulls().create()));
         final Call<ActionPoint> call = retrofit.updateActionPoint(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 actionPoint.getId(), actionPoint);
 
         if (BuildConfig.isDEBUG) {
@@ -381,7 +388,6 @@ public class RetrofitUtil {
                     realm.executeTransaction(new Realm.Transaction() {
                         @Override
                         public void execute(Realm realm) {
-                            AppUtil.addAssignedFullName(realm, body);
                             realm.copyToRealmOrUpdate(body);
                         }
                     });
@@ -411,7 +417,7 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<Trip> call = retrofit.addActionPointToTrip(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 trip.getId(), new ActionPointsWrapper(trip.getActionPoints()));
 
         if (BuildConfig.isDEBUG) {
@@ -432,8 +438,6 @@ public class RetrofitUtil {
                     realm.executeTransaction(new Realm.Transaction() {
                         @Override
                         public void execute(Realm realm) {
-                            AppUtil.addAssignedFullName(realm, body.actionPoints);
-
                             // first check  - is my or supervised trip and check traveler name
                             Trip fromDateBase = realm.where(Trip.class).equalTo("id", body.getId()).findFirst();
                             if (fromDateBase != null && fromDateBase.isValid()) {
@@ -443,8 +447,6 @@ public class RetrofitUtil {
 
                                 AppUtil.checkDraftForTrip(realm, body);
                             }
-                            AppUtil.addAssignedFullName(realm, body.actionPoints);
-
                             realm.insertOrUpdate(body);
                         }
                     });
@@ -478,7 +480,7 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<JsonObject> call = retrofit.getMyTrips(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 page, APIUtil.PER_PAGE_TRIPS, APIUtil.SortBy.START_DATE, relatedUserId);
 
         if (BuildConfig.isDEBUG) {
@@ -556,7 +558,7 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<JsonObject> call = retrofit.getSupervisedTrips(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
                 page, APIUtil.PER_PAGE_TRIPS, APIUtil.SortBy.START_DATE, relatedUserId);
 
         if (BuildConfig.isDEBUG) {
@@ -631,7 +633,7 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<JsonObject> call = retrofit.getTrip(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken(), tripId);
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(), tripId);
 
         if (BuildConfig.isDEBUG) {
             Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
@@ -670,7 +672,6 @@ public class RetrofitUtil {
 
                                 AppUtil.checkDraftForTrip(realm, trip);
                             }
-                            AppUtil.addAssignedFullName(realm, trip.actionPoints);
                             // add
                             realm.insertOrUpdate(trip);
                         }
@@ -701,7 +702,9 @@ public class RetrofitUtil {
 
         final RetrofitApiService retrofit = initRetrofit();
         final Call<JsonArray> call = retrofit.getUsers(
-                RestHttpClient.TOKEN_VALUE + Preference.getInstance(context).getUserToken());
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(),
+                "minimal"
+        );
 
         if (BuildConfig.isDEBUG) {
             Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
@@ -760,14 +763,373 @@ public class RetrofitUtil {
         return call;
     }
 
+    public static Call getStaticData(@NonNull final Context context,
+                                     final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<Data> call = retrofit.getStaticData(
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken());
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<Data>() {
+            @Override
+            public void onResponse(Call<Data> call, Response<Data> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    final Data staticData = response.body();
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            if (staticData.getActionPointStatusesArray() != null) {
+                                RealmList<ActionPointStatus> actionPointList = new RealmList<>();
+                                for (String actionPointStatusStr : staticData.getActionPointStatusesArray()) {
+                                    actionPointList.add(new ActionPointStatus(actionPointStatusStr));
+                                }
+                                staticData.setActionPointStatuses(actionPointList);
+                            }
+
+                            // add
+                            realm.insertOrUpdate(staticData.getLocations());
+                            realm.insertOrUpdate(staticData.getResults());
+                            realm.insertOrUpdate(staticData.getActionPointStatuses());
+                            realm.insertOrUpdate(staticData.getPartnerships());
+                            realm.insertOrUpdate(staticData.getPartners());
+                        }
+                    });
+                    realm.close();
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.STATIC_DATA_LOADED, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Data> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    public static Call getWbsGrantsFunds(@NonNull final Context context, long businessAreaId,
+                                         final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<Data2> call = retrofit.getWbsGrantsFunds(
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken(), businessAreaId);
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<Data2>() {
+            @Override
+            public void onResponse(Call<Data2> call, Response<Data2> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    final Data2 staticData2 = response.body();
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            // add
+                            realm.insertOrUpdate(staticData2.getFunds());
+                            realm.insertOrUpdate(staticData2.getGrants());
+                            realm.insertOrUpdate(staticData2.getWbs());
+                        }
+                    });
+                    realm.close();
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.WBS_GRANTS_FUNDS_LOADED, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Data2> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    public static Call getCurrencies(@NonNull final Context context,
+                                     final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<JsonArray> call = retrofit.getCurrencies(
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken());
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<JsonArray>() {
+            @Override
+            public void onResponse(Call<JsonArray> call, Response<JsonArray> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    Type listType = new TypeToken<ArrayList<Currency>>() {
+                    }.getType();
+                    final ArrayList<Currency> currencies = new Gson().fromJson(response.body()
+                            .toString(), listType);
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            // add
+                            realm.insertOrUpdate(currencies);
+                        }
+                    });
+                    realm.close();
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.CURRENCIES_LOADED, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonArray> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    public static Call getProfile(@NonNull final Context context,
+                                  final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<User> call = retrofit.getProfile(
+                TOKEN_VALUE + Preference.getInstance(context).getUserToken());
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<User>() {
+            @Override
+            public void onResponse(Call<User> call, Response<User> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    final User user = response.body();
+
+                    // save user name and id in prefs
+                    Preference.getInstance(context).setUserId(user.getId());
+                    Preference.getInstance(context).setUserName(user.getFirstName()
+                            + Constant.Symbol.SPACE + user.getLastName());
+
+                    final Realm realm = Realm.getDefaultInstance();
+                    realm.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            // add
+                            realm.insertOrUpdate(user);
+                        }
+                    });
+                    realm.close();
+
+                    if (user.getTravel2Field() == null) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                        return;
+                    }
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.PROFILE_LOADED, subscriber);
+                    BusProvider.getInstance().post(event);
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<User> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+    public static Call getStagingToken(@NonNull final Context context, final String userName,
+                                       final String password, final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit();
+        final Call<JsonObject> call = retrofit.getStagingToken(userName, password);
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    final JsonObject body = response.body();
+                    String token = body.get(Constant.Json.TOKEN_KEY).getAsString();
+
+                    // drop certain user data
+                    Preference.getInstance(context).setUserName(null);
+                    Preference.getInstance(context).setUserId(0);
+
+                    // save token in prefs
+                    Preference.getInstance(context).setUserToken(token);
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.TOKEN_REQUEST_COMPLETED, subscriber);
+                    BusProvider.getInstance().post(event);
+
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonObject> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
+
+    public static Call getProductionToken(@NonNull final Context context, final String userName,
+                                          final String password, final String subscriber) {
+
+        final RetrofitApiService retrofit = initRetrofit(APIUtil.getHostLogIn());
+        final Call<ResponseBody> call =
+                retrofit.getProductionToken(RequestBody.create(MediaType.parse("application/soap+xml"),
+                        PostEntityUtil.composeSoapSignInPostEntity(userName, password)));
+
+        if (BuildConfig.isDEBUG) {
+            Log.i(LOG_TAG, "Calling URL: " + call.request().url().toString());
+        }
+
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (BuildConfig.isDEBUG) {
+                    Log.i(LOG_TAG, "Response code: " + response.code());
+                }
+
+                if (response.code() == HttpErrorUtil.NumericStatusCode.HTTP_OK) {
+                    String token = null;
+                    try {
+                        token = AppUtil.findElementFromXml(response.body().string(), "BinarySecurityToken");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    if (token == null) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                        return;
+                    }
+
+                    if (BuildConfig.isDEBUG) Log.i(LOG_TAG, token);
+
+                    // drop certain user data
+                    Preference.getInstance(context).setUserName(null);
+                    Preference.getInstance(context).setUserId(0);
+
+                    // save token in prefs
+                    Preference.getInstance(context).setUserToken(new String(Base64.decode(token, Base64.DEFAULT), UTF_8));
+
+                    final ApiEvent event
+                            = new ApiEvent<>(ApiEvent.EventType.Api.TOKEN_REQUEST_COMPLETED, subscriber);
+                    BusProvider.getInstance().post(event);
+
+                } else {
+                    try {
+                        handleFailedRequest(context, null, subscriber, response.errorBody().string(),
+                                response.code());
+                    } catch (IOException e) {
+                        handleFailedRequest(context, null, subscriber, null, response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                handleFailedRequest(context, t, subscriber, null,
+                        HttpErrorUtil.NumericStatusCode.CONNECTION_ERROR);
+            }
+        });
+        return call;
+    }
+
     // ===========================================================
     // Helper methods
     // ===========================================================
 
-    public static RetrofitApiService initRetrofit() {
+    private static RetrofitApiService initRetrofit() {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(20000, TimeUnit.SECONDS)
-                .readTimeout(20000, TimeUnit.SECONDS).build();
+                .readTimeout(20000, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS).build();
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(APIUtil.getHost())
                 .client(client)
@@ -778,12 +1140,43 @@ public class RetrofitUtil {
         return retrofit.create(RetrofitApiService.class);
     }
 
-    public static RetrofitApiService initRetrofit(GsonConverterFactory gsonConverterFactory) {
+    private static RetrofitApiService initRetrofit(String host) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(20000, TimeUnit.SECONDS)
-                .readTimeout(20000, TimeUnit.SECONDS).build();
+                .readTimeout(20000, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS).build();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(host)
+                .client(client)
+                .callbackExecutor(Executors.newSingleThreadExecutor())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        return retrofit.create(RetrofitApiService.class);
+    }
+
+    private static RetrofitApiService initRetrofit(GsonConverterFactory gsonConverterFactory) {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(20000, TimeUnit.SECONDS)
+                .readTimeout(20000, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS).build();
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(APIUtil.getHost())
+                .client(client)
+                .callbackExecutor(Executors.newSingleThreadExecutor())
+                .addConverterFactory(gsonConverterFactory)
+                .build();
+
+        return retrofit.create(RetrofitApiService.class);
+    }
+
+    private static RetrofitApiService initRetrofit(String host, GsonConverterFactory gsonConverterFactory) {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(20000, TimeUnit.SECONDS)
+                .readTimeout(20000, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS).build();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(host)
                 .client(client)
                 .callbackExecutor(Executors.newSingleThreadExecutor())
                 .addConverterFactory(gsonConverterFactory)

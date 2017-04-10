@@ -10,8 +10,8 @@ android {
         applicationId "org.unicef.etools.etrips.prod"
         minSdkVersion 16
         targetSdkVersion 25
-        versionCode 5
-        versionName "300004"
+        versionCode 7
+        versionName "300006"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -59,19 +59,21 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     compile 'com.github.bumptech.glide:glide:3.7.0'
-    compile 'com.android.support:appcompat-v7:25.3.0'
-    compile 'com.android.support:design:25.3.0'
-    compile 'com.android.support:cardview-v7:25.3.0'
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support:design:25.3.1'
+    compile 'com.android.support:cardview-v7:25.3.1'
     compile 'com.google.guava:guava:20.0'
     compile 'com.google.code.gson:gson:2.7'
-    compile 'com.android.support:support-v4:25.3.0'
+    compile 'com.android.support:support-v4:25.3.1'
     compile 'com.squareup.retrofit2:retrofit:2.2.0'
     compile 'com.squareup.retrofit2:converter-gson:2.2.0'
     compile 'id.zelory:compressor:1.0.4'
     compile 'net.hockeyapp.android:HockeySDK:4.1.2'
     compile 'com.android.support.constraint:constraint-layout:1.0.0'
+    compile 'com.miguelcatalan:materialsearchview:1.4.0'
     testCompile 'junit:junit:4.12'
     debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5'
     debugCompile 'com.amitshekhar.android:debug-db:0.2.0'
     releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
+    compile 'io.realm:android-adapters:2.0.0'
 }

@@ -45,12 +45,15 @@ public class User extends RealmObject {
     @SerializedName("date_joined")
     private String dateJoined;
 
+    @SerializedName("t2f")
+    private Travel2Field travel2Field;
+
     public User() {
     }
 
     public User(long pk, long id, Profile profile, String lastLoginTime, boolean isSuperUser,
-                String userName, String firstName, String lastName, String email,
-                boolean isStaff, boolean isActive, String dateJoined) {
+                String userName, String firstName, String lastName, String email, boolean isStaff,
+                boolean isActive, String dateJoined, Travel2Field travel2Field) {
         this.pk = pk;
         this.id = id;
         this.profile = profile;
@@ -63,6 +66,7 @@ public class User extends RealmObject {
         this.isStaff = isStaff;
         this.isActive = isActive;
         this.dateJoined = dateJoined;
+        this.travel2Field = travel2Field;
     }
 
     public long getPk() {
@@ -161,5 +165,11 @@ public class User extends RealmObject {
         this.dateJoined = dateJoined;
     }
 
+    public Travel2Field getTravel2Field() {
+        return travel2Field;
+    }
 
+    public void setTravel2Field(Travel2Field travel2Field) {
+        this.travel2Field = travel2Field;
+    }
 }

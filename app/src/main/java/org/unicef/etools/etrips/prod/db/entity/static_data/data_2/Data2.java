@@ -37,58 +37,10 @@ public class Data2 {
     public Data2() {
     }
 
-    public Data2(RealmList<Currency> currencies, RealmList<Airline> airlines, RealmList<DsaRegion> dsaRegions,
-                 RealmList<Country> countries, RealmList<BusinessArea> businessAreas, RealmList<Wbs> wbs,
-                 RealmList<Grant> grants, RealmList<Fund> funds, RealmList<ExpenseType> expenseTypes) {
-        this.currencies = currencies;
-        this.airlines = airlines;
-        this.dsaRegions = dsaRegions;
-        this.countries = countries;
-        this.businessAreas = businessAreas;
+    public Data2(RealmList<Wbs> wbs, RealmList<Grant> grants, RealmList<Fund> funds) {
         this.wbs = wbs;
         this.grants = grants;
         this.funds = funds;
-        this.expenseTypes = expenseTypes;
-    }
-
-    public RealmList<Currency> getCurrencies() {
-        return currencies;
-    }
-
-    public void setCurrencies(RealmList<Currency> currencies) {
-        this.currencies = currencies;
-    }
-
-    public RealmList<Airline> getAirlines() {
-        return airlines;
-    }
-
-    public void setAirlines(RealmList<Airline> airlines) {
-        this.airlines = airlines;
-    }
-
-    public RealmList<DsaRegion> getDsaRegions() {
-        return dsaRegions;
-    }
-
-    public void setDsaRegions(RealmList<DsaRegion> dsaRegions) {
-        this.dsaRegions = dsaRegions;
-    }
-
-    public RealmList<Country> getCountries() {
-        return countries;
-    }
-
-    public void setCountries(RealmList<Country> countries) {
-        this.countries = countries;
-    }
-
-    public RealmList<BusinessArea> getBusinessAreas() {
-        return businessAreas;
-    }
-
-    public void setBusinessAreas(RealmList<BusinessArea> businessAreas) {
-        this.businessAreas = businessAreas;
     }
 
     public RealmList<Wbs> getWbs() {
@@ -115,11 +67,4 @@ public class Data2 {
         this.funds = funds;
     }
 
-    public RealmList<ExpenseType> getExpenseTypes() {
-        return expenseTypes;
-    }
-
-    public void setExpenseTypes(RealmList<ExpenseType> expenseTypes) {
-        this.expenseTypes = expenseTypes;
-    }
 }

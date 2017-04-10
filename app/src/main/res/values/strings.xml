@@ -28,6 +28,7 @@
     <string name="msg_connection_error">Connection error</string>
     <string name="msg_navigation_drawer_open">Open navigation drawer</string>
     <string name="msg_navigation_drawer_close">Close navigation drawer</string>
+    <string name="msg_wrong_credentials">Unable to login with provided credentials</string>
     <string name="msg_verify_action_point">Please verify action point. Some information is missing
         or incorrect
     </string>
@@ -158,12 +159,16 @@
     <string name="text_tv_empty_state_general_title">Something going wrong!</string>
     <string name="text_tv_empty_state_general_description">Please, check your internet connection.
     </string>
+    <string name="text_tv_empty_state_users_title">No users found.</string>
+    <string name="text_tv_empty_state_users_description">Please, check your internet connection.
+    </string>
     <string name="text_tv_report_draft_label">This report is not submitted, it was saved as draft.
     </string>
     <string name="text_no_report">No report</string>
     <string name="text_rn">Rejection notes (optional)</string>
     <string name="draft">Draft</string>
     <string name="text_tv_licenses">Open source licenses</string>
+    <string name="search_menu_title">Search</string>
 
     <!--list of languages -->
     <string-array name="languages">

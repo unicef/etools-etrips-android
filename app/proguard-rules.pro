@@ -30,8 +30,11 @@
 -dontwarn org.apache.**
 -dontwarn com.squareup.**
 -dontwarn com.fasterxml.**
+-dontwarn com.miguelcatalan.**
+-dontwarn com.github.**
 -dontwarn okio.**
 -dontwarn retrofit2.**
+-dontwarn okhttp3.**
 
 -dontwarn java.lang.ClassValue
 -dontwarn com.google.j2objc.annotations.Weak
@@ -49,6 +52,7 @@
 -keep class sun.misc.Unsafe { *; }
 -keep class com.google.gson.** { *; }
 -keep class com.google.** { *; }
+-keep class com.miguelcatalan.** { *; }
 -keep class com.facebook.** { *; }
 -keep class com.nostra13.** { *; }
 -keep class com.amulyakhare.** { *; }
@@ -62,6 +66,9 @@
 -keep class com.directions.** { *; }
 -keep class com.google.guava.** { *; }
 -keep class com.squareup.** { *; }
+-keep class com.github.** { *; }
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
 
 -keep class android.support.** { *; }
 -keep class android.support.v4.** { *; }

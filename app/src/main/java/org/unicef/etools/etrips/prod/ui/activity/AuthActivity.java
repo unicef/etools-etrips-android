@@ -17,25 +17,22 @@ import com.google.common.eventbus.Subscribe;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.R;
+import org.unicef.etools.etrips.prod.db.entity.user.User;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.HttpRequestManager;
-import org.unicef.etools.etrips.prod.io.rest.url_connection.util.PostEntityUtil;
-import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
-import org.unicef.etools.etrips.prod.io.service.ETService;
+import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
+import org.unicef.etools.etrips.prod.util.EncodeUtil;
 import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
+import org.unicef.etools.etrips.prod.util.manager.LogInManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.widget.EdittextSpinner;
 
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.LOGIN_PROD;
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.LOGIN_STAGING;
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.STATIC_DATA;
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.STATIC_DATA_2;
-import static org.unicef.etools.etrips.prod.io.rest.util.APIUtil.USERS;
+import io.realm.Realm;
+import retrofit2.Call;
 
 public class AuthActivity extends BaseActivity implements View.OnClickListener,
         TextWatcher {
@@ -56,6 +53,14 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
     private TextInputLayout mTilPass;
     private TextInputEditText mTietPass;
     private EdittextSpinner mEtsLanguages;
+    private LogInManager mLogInManager;
+
+    private Call mTokenRequest;
+    private Call mProfileRequest;
+    private Call mWbsGruntsFundRequest;
+    private Call mCurrenciesRequest;
+    private Call mStaticDataRequest;
+
 
     // ===========================================================
     // Constructors
@@ -73,6 +78,7 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         BusProvider.register(this);
+        mLogInManager = new LogInManager();
         findViews();
         setListeners();
         initLanguageSpinner();
@@ -82,7 +88,8 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
     protected void onDestroy() {
         super.onDestroy();
         BusProvider.unregister(this);
-        DialogManager.getInstance().dismissPreloader(getClass());
+        cancelRequests(false);
+        Realm.getDefaultInstance().close();
     }
 
     @Override
@@ -119,43 +126,56 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
 
     private void handleApiEvents(ApiEvent event) {
 
-        // dismiss preloader only after loading static data or error
-        if (event.getEventType() != Event.EventType.Api.PROFILE_LOADED) {
-            DialogManager.getInstance().dismissPreloader(getClass());
-        }
-
-        // when error retrieved - check user token and reset it
-        if (event.getEventType() != Event.EventType.Api.PROFILE_LOADED
-                && event.getEventType() != Event.EventType.Api.USERS_LOADED) {
-            if (Preference.getInstance(this).getUserToken() != null) {
-                Preference.getInstance(this).setUserToken(null);
-            }
-        }
-
         switch (event.getEventType()) {
 
-            case Event.EventType.Api.PROFILE_LOADED:
-                // when user token retrieved - call static data and list of users
-                loadStaticDataFromServer(APIUtil.getURL(STATIC_DATA),
-                        APIUtil.getURL(STATIC_DATA_2),
-                        APIUtil.getURL(USERS));
+            case Event.EventType.Api.TOKEN_REQUEST_COMPLETED:
+                mLogInManager.setRequestStatus(LogInManager.Request.GET_TOKEN, true);
+
+                mProfileRequest = RetrofitUtil.getProfile(
+                        this,
+                        getClass().getSimpleName()
+                );
                 break;
 
-            case Event.EventType.Api.USERS_LOADED:
-                Intent intent = new Intent(this, MainActivity.class);
-                startActivity(intent);
-                finish();
+            case Event.EventType.Api.PROFILE_LOADED:
+                User user = Realm.getDefaultInstance().where(User.class)
+                        .equalTo("id", Preference.getInstance(this).getUserId()).findFirst();
+
+                if (user == null || !user.isValid() || user.getTravel2Field() == null) {
+                    cancelRequests(true);
+                    SnackBarManager.show(this, getString(R.string.msg_unknown_error), SnackBarManager.Duration.LONG);
+                    return;
+                }
+
+                mLogInManager.setRequestStatus(LogInManager.Request.GET_PROFILE, true);
+
+                startAdditionalDataRequests(user);
+                break;
+
+            case Event.EventType.Api.WBS_GRANTS_FUNDS_LOADED:
+                mLogInManager.setRequestStatus(LogInManager.Request.GET_WBS_GRANTS_FUNDS, true);
+                break;
+
+            case Event.EventType.Api.CURRENCIES_LOADED:
+                mLogInManager.setRequestStatus(LogInManager.Request.GET_CURRENCIES, true);
+                break;
+
+            case Event.EventType.Api.STATIC_DATA_LOADED:
+                mLogInManager.setRequestStatus(LogInManager.Request.GET_STATIC_DATA, true);
                 break;
 
             case Event.EventType.Api.Error.NO_NETWORK:
+                cancelRequests(true);
                 SnackBarManager.show(this, getString(R.string.msg_network_connection_error), SnackBarManager.Duration.LONG);
                 break;
 
             case Event.EventType.Api.Error.PAGE_NOT_FOUND:
+                cancelRequests(true);
                 if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_page_not_found));
                 break;
 
             case Event.EventType.Api.Error.BAD_REQUEST:
+                cancelRequests(true);
                 String body = (String) event.getEventData();
                 if (body != null) {
                     SnackBarManager.show(this, body, SnackBarManager.Duration.LONG);
@@ -165,13 +185,26 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
                 break;
 
             case Event.EventType.Api.Error.UNAUTHORIZED:
+                cancelRequests(true);
                 if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_not_authorized));
                 break;
 
             case Event.EventType.Api.Error.UNKNOWN:
-                SnackBarManager.show(this, getString(R.string.msg_unknown_error), SnackBarManager.Duration.LONG);
+                cancelRequests(true);
+                if (BuildConfig.isDEBUG) {
+                    SnackBarManager.show(this, getString(R.string.msg_unknown_error), SnackBarManager.Duration.LONG);
+                } else {
+                    SnackBarManager.show(this, getString(R.string.msg_wrong_credentials), SnackBarManager.Duration.LONG);
+                }
                 if (BuildConfig.isDEBUG) Log.i(LOG_TAG, getString(R.string.msg_unknown_error));
                 break;
+        }
+
+        if (mLogInManager.isLogInCompleted()) {
+            DialogManager.getInstance().dismissPreloader(getClass());
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            finish();
         }
     }
 
@@ -275,24 +308,27 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
         if (isValidationSucceeded) {
             mTilEmail.setErrorEnabled(false);
             mTilPass.setErrorEnabled(false);
-
             DialogManager.getInstance().showPreloader(this, getClass().getSimpleName());
 
             AppUtil.closeKeyboard(this);
 
-            String postEntity = BuildConfig.isDEBUG ?
-                    PostEntityUtil.composeSignInPostEntity(getValidatedEmail(mail), pass) :
-                    PostEntityUtil.composeSoapSignInPostEntity(getValidatedEmail(mail), pass);
-
             Preference.getInstance(this).setUserLanguage(language);
 
-            ETService.start(
-                    this,
-                    getClass().getSimpleName(),
-                    BuildConfig.isDEBUG ? APIUtil.getURL(LOGIN_STAGING) : LOGIN_PROD,
-                    postEntity,
-                    HttpRequestManager.RequestType.LOGIN
-            );
+            if (BuildConfig.isDEBUG) {
+                mTokenRequest = RetrofitUtil.getStagingToken(
+                        this,
+                        getValidatedEmail(EncodeUtil.escapeString(mail)),
+                        EncodeUtil.escapeString(pass),
+                        getClass().getSimpleName()
+                );
+            } else {
+                mTokenRequest = RetrofitUtil.getProductionToken(
+                        this,
+                        getValidatedEmail(EncodeUtil.escapeString(mail)),
+                        EncodeUtil.escapeString(pass),
+                        getClass().getSimpleName()
+                );
+            }
         }
     }
 
@@ -303,27 +339,43 @@ public class AuthActivity extends BaseActivity implements View.OnClickListener,
         return mail;
     }
 
-    private void loadStaticDataFromServer(String apiUrlStatic1, String apiUrlStatic2, String apiUrlStaticUser) {
-        // call server to retrieve static data
-        ETService.start(
+    private void startAdditionalDataRequests(User user) {
+        mWbsGruntsFundRequest = RetrofitUtil.getWbsGrantsFunds(
                 this,
-                getClass().getSimpleName(),
-                apiUrlStatic1,
-                HttpRequestManager.RequestType.GET_STATIC_DATA
+                user.getTravel2Field().getBusinessArea(),
+                getClass().getSimpleName()
         );
-        ETService.start(
+        mCurrenciesRequest = RetrofitUtil.getCurrencies(
                 this,
-                getClass().getSimpleName(),
-                apiUrlStatic2,
-                HttpRequestManager.RequestType.GET_STATIC_DATA_2
+                getClass().getSimpleName()
         );
+        mStaticDataRequest = RetrofitUtil.getStaticData(
+                this,
+                getClass().getSimpleName()
+        );
+    }
 
-        ETService.start(
-                this,
-                getClass().getSimpleName(),
-                apiUrlStaticUser,
-                HttpRequestManager.RequestType.GET_USERS
-        );
+    private void cancelRequests(boolean releaseToken) {
+        if (releaseToken) {
+            Preference.getInstance(this).setUserToken(null);
+        }
+        if (mTokenRequest != null) {
+            mTokenRequest.cancel();
+        }
+        if (mProfileRequest != null) {
+            mProfileRequest.cancel();
+        }
+        if (mWbsGruntsFundRequest != null) {
+            mWbsGruntsFundRequest.cancel();
+        }
+        if (mStaticDataRequest != null) {
+            mStaticDataRequest.cancel();
+        }
+        if (mCurrenciesRequest != null) {
+            mCurrenciesRequest.cancel();
+        }
+        mLogInManager.resetStatuses();
+        DialogManager.getInstance().dismissPreloader(getClass());
     }
 
     // ===========================================================

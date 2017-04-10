@@ -14,6 +14,14 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <style name="SearchStyle" parent="BaseTheme">
+        <item name="colorControlActivated">@android:color/black</item>
+    </style>
+
+    <style name="ScrollBarStyle" parent="BaseTheme">
+        <item name="colorControlNormal">@android:color/black</item>
+    </style>
+
     <style name="MainTheme" parent="BaseTheme">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
@@ -116,6 +124,12 @@
         <item name="es_icon">@drawable/ic_empty_state_general</item>
         <item name="es_title">@string/text_tv_empty_state_general_title</item>
         <item name="es_description">@string/text_tv_empty_state_general_description</item>
+    </style>
+
+    <style name="UsersEmptyState" parent="BaseEmptyState">
+        <item name="es_icon">@drawable/ic_empty_state_general</item>
+        <item name="es_title">@string/text_tv_empty_state_users_title</item>
+
     </style>
 
 </resources>

@@ -10,9 +10,12 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 import com.google.common.eventbus.Subscribe;
+import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.R;
@@ -20,22 +23,25 @@ import org.unicef.etools.etrips.prod.db.entity.PersonResponsibleWrapper;
 import org.unicef.etools.etrips.prod.db.entity.user.UserStatic;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
+import org.unicef.etools.etrips.prod.io.bus.event.ChangeDataEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.bus.event.NetworkEvent;
 import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.ui.adapter.UserStaticAdapter;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
+import org.unicef.etools.etrips.prod.util.ItemClickSupport;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.receiver.NetworkStateReceiver;
+import org.unicef.etools.etrips.prod.util.widget.EmptyState;
 
-import java.util.ArrayList;
-
+import io.realm.Case;
+import io.realm.OrderedRealmCollection;
 import io.realm.Realm;
 import io.realm.RealmResults;
 import retrofit2.Call;
 
-public class UserStaticsActivity extends BaseActivity implements UserStaticAdapter.OnItemClickListener,
+public class UserStaticsActivity extends BaseActivity implements
         SwipeRefreshLayout.OnRefreshListener {
 
     // ===========================================================
@@ -43,6 +49,7 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
     // ===========================================================
 
     private static final String LOG_TAG = UserStaticsActivity.class.getSimpleName();
+    public static final String SEARCH_FIELD = "fullName";
 
     // ===========================================================
     // Fields
@@ -52,6 +59,10 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
 
     private RecyclerView mRvUsers;
     private SwipeRefreshLayout mSwipeRefreshLayout;
+    private EmptyState mEmptyState;
+    private MaterialSearchView mSvSearch;
+
+    private String mQueryText;
 
     private Call mUserStaticRequest;
 
@@ -75,8 +86,8 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
         setListeners();
         customizeActionBar();
         initListComponents();
-        retrieveUserStaticsFromDb();
-
+        setupSearchView();
+        retrieveUserStaticsFromDb(true);
         BusProvider.register(this);
     }
 
@@ -86,10 +97,27 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_user_static, menu);
+        MenuItem item = menu.findItem(R.id.action_search);
+        mSvSearch.setMenuItem(item);
+        return true;
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
 
         releaseResources();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mSvSearch.isSearchOpen()) {
+            mSvSearch.closeSearch();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     // ===========================================================
@@ -126,7 +154,7 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
 
         switch (event.getEventType()) {
             case Event.EventType.Api.USERS_LOADED:
-                retrieveUserStaticsFromDb();
+                retrieveUserStaticsFromDb(false);
                 break;
 
             case Event.EventType.Api.Error.NO_NETWORK:
@@ -179,27 +207,6 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
         return super.onOptionsItemSelected(item);
     }
 
-
-    @Override
-    public void onItemClick(UserStatic userStatic) {
-        // Don't forget to handle case when action point is not valid as Realm object.
-        final String name = !TextUtils.isEmpty(userStatic.getFullName())
-                ? userStatic.getFullName() : userStatic.getUsername();
-        final long id = userStatic.getId();
-
-        final Intent data = new Intent();
-        final PersonResponsibleWrapper wrapper = new PersonResponsibleWrapper(id, name);
-        data.putExtra(Constant.Argument.ARGUMENT_PERSON_RESPONSIBLE_WRAPPER, wrapper);
-
-        setResult(Activity.RESULT_OK, data);
-        finish();
-    }
-
-    @Override
-    public void onItemLongClick(UserStatic userStatic) {
-        // Don't forget to handle case when action point is not valid as Realm object.
-    }
-
     @Override
     public void onRefresh() {
         loadUsersFromServer(false);
@@ -212,10 +219,14 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
     private void findViews() {
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.srl_users);
         mRvUsers = (RecyclerView) findViewById(R.id.rv_user_statics);
+        mEmptyState = (EmptyState) findViewById(R.id.es_users);
+        mSvSearch = (MaterialSearchView) findViewById(R.id.search_view);
     }
 
     private void setListeners() {
         mSwipeRefreshLayout.setOnRefreshListener(this);
+        mSvSearch.setOnQueryTextListener(new SearchQueryListener());
+        mSvSearch.setOnSearchViewListener(new SearchViewListener());
     }
 
     private void customizeActionBar() {
@@ -228,19 +239,47 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         mRvUsers.setLayoutManager(linearLayoutManager);
         mRvUsers.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        mAdapter = new UserStaticAdapter(new ArrayList<UserStatic>(), this);
+        mAdapter = new UserStaticAdapter(null);
         mRvUsers.setAdapter(mAdapter);
-    }
-
-    private void retrieveUserStaticsFromDb() {
-        Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
+        ItemClickSupport.addTo(mRvUsers).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
             @Override
-            public void execute(Realm realm) {
-                RealmResults<UserStatic> userStatics = realm.where(UserStatic.class)
-                        .findAll();
-                mAdapter.add(userStatics);
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+                UserStatic userStatic = ((UserStaticAdapter) recyclerView.getAdapter()).getItem(position);
+                if (userStatic != null) {
+                    final String name = !TextUtils.isEmpty(userStatic.getFullName())
+                            ? userStatic.getFullName() : userStatic.getUsername();
+                    final long id = userStatic.getId();
+
+                    final Intent data = new Intent();
+                    final PersonResponsibleWrapper wrapper = new PersonResponsibleWrapper(id, name);
+                    data.putExtra(Constant.Argument.ARGUMENT_PERSON_RESPONSIBLE_WRAPPER, wrapper);
+
+                    setResult(Activity.RESULT_OK, data);
+                    finish();
+                }
             }
         });
+    }
+
+    private void setupSearchView() {
+        mSvSearch.setVoiceSearch(true);
+    }
+
+    private void retrieveUserStaticsFromDb(boolean loadFromServerIfNeeded) {
+        OrderedRealmCollection<UserStatic> userStatics = Realm.getDefaultInstance().where(UserStatic.class)
+                .contains(SEARCH_FIELD, mQueryText, Case.INSENSITIVE)
+                .findAll();
+
+        if (userStatics == null || !userStatics.isValid() || userStatics.size() == 0) {
+            mEmptyState.setVisibility(View.VISIBLE);
+            if (loadFromServerIfNeeded) {
+                loadUsersFromServer(true);
+            }
+            return;
+        }
+
+        mEmptyState.setVisibility(View.GONE);
+        mAdapter.updateData(userStatics);
     }
 
     private void loadUsersFromServer(boolean showSwipeToRefresh) {
@@ -250,6 +289,7 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
         if (showSwipeToRefresh) {
             mSwipeRefreshLayout.setRefreshing(true);
         }
+        BusProvider.getInstance().post(new ChangeDataEvent<>(Event.EventType.ChangeData.STOP_LOADING_USERS));
         mUserStaticRequest = RetrofitUtil.getUsers(this, getClass().getSimpleName());
     }
 
@@ -266,10 +306,57 @@ public class UserStaticsActivity extends BaseActivity implements UserStaticAdapt
             mSwipeRefreshLayout.destroyDrawingCache();
             mSwipeRefreshLayout.clearAnimation();
         }
+        mRvUsers.setAdapter(null);
     }
 
     // ===========================================================
     // Inner and Anonymous Classes
     // ===========================================================
 
+    private class SearchQueryListener implements MaterialSearchView.OnQueryTextListener {
+
+        @Override
+        public boolean onQueryTextSubmit(String query) {
+            AppUtil.closeKeyboard(UserStaticsActivity.this);
+            return true;
+        }
+
+        @Override
+        public boolean onQueryTextChange(String newText) {
+            RealmResults<UserStatic> searchResults = Realm.getDefaultInstance().where(UserStatic.class)
+                    .contains(SEARCH_FIELD, newText.trim(), Case.INSENSITIVE).findAll();
+
+            if (searchResults == null || !searchResults.isValid()) {
+                return false;
+            }
+
+            if (!newText.trim().isEmpty()) {
+                if (searchResults.size() > 0) {
+                    ((UserStaticAdapter) mRvUsers.getAdapter()).updateData(searchResults);
+                } else {
+                    ((UserStaticAdapter) mRvUsers.getAdapter()).updateData(null);
+                }
+            } else {
+                ((UserStaticAdapter) mRvUsers.getAdapter()).updateData(searchResults);
+            }
+            mEmptyState.setVisibility(searchResults.size() > 0 ? View.GONE : View.VISIBLE);
+            mQueryText = newText;
+            return true;
+        }
+    }
+
+    private class SearchViewListener implements MaterialSearchView.SearchViewListener {
+
+        @Override
+        public void onSearchViewShown() {
+            if (!mSwipeRefreshLayout.isRefreshing()) {
+                mSwipeRefreshLayout.setEnabled(false);
+            }
+        }
+
+        @Override
+        public void onSearchViewClosed() {
+            mSwipeRefreshLayout.setEnabled(true);
+        }
+    }
 }

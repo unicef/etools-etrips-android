@@ -125,7 +125,7 @@ public class CostAssignmentAdapter extends RecyclerView.Adapter<CostAssignmentAd
                     .equalTo("id", mCostAssignments.get(getAdapterPosition()).getFund()).findFirst();
 
             Grant grant = Realm.getDefaultInstance().where(Grant.class)
-                    .equalTo("id", mCostAssignments.get(getAdapterPosition()).getFund()).findFirst();
+                    .equalTo("id", mCostAssignments.get(getAdapterPosition()).getGrant()).findFirst();
 
             String wbsName = wbs != null && wbs.isValid() ? wbs.getName() : null;
             String fundName = fund != null && fund.isValid() ? fund.getName() : null;

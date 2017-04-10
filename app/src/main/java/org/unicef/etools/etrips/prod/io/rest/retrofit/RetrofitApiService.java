@@ -4,10 +4,13 @@ package org.unicef.etools.etrips.prod.io.rest.retrofit;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import org.unicef.etools.etrips.prod.db.entity.static_data.data.Data;
+import org.unicef.etools.etrips.prod.db.entity.static_data.data_2.Data2;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPoint;
 import org.unicef.etools.etrips.prod.db.entity.trip.ActionPointsWrapper;
 import org.unicef.etools.etrips.prod.db.entity.trip.Attachment;
 import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
+import org.unicef.etools.etrips.prod.db.entity.user.User;
 import org.unicef.etools.etrips.prod.io.rest.entity.ActionPointListResponse;
 import org.unicef.etools.etrips.prod.io.rest.util.APIUtil;
 
@@ -15,6 +18,7 @@ import java.util.HashMap;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Field;
@@ -113,6 +117,44 @@ public interface RetrofitApiService {
     @GET(APIUtil.USERS)
     @Headers("Content-Type: application/json")
     Call<JsonArray> getUsers(
+            @Header("Authorization") String authorization,
+            @Query("verbosity") String verbosity
+    );
+
+    @GET(APIUtil.STATIC_DATA)
+    @Headers("Content-Type: application/json")
+    Call<Data> getStaticData(
             @Header("Authorization") String authorization
+    );
+
+    @GET(APIUtil.WBS_GRANTS_FUNDS)
+    @Headers("Content-Type: application/json")
+    Call<Data2> getWbsGrantsFunds(
+            @Header("Authorization") String authorization,
+            @Query("business_area") long businessAreaId
+    );
+
+    @GET(APIUtil.CURRENCIES)
+    @Headers("Content-Type: application/json")
+    Call<JsonArray> getCurrencies(
+            @Header("Authorization") String authorization
+    );
+
+    @GET(APIUtil.PROFILE)
+    @Headers("Content-Type: application/json")
+    Call<User> getProfile(
+            @Header("Authorization") String authorization
+    );
+
+    @FormUrlEncoded
+    @POST(APIUtil.LOGIN_STAGING)
+    Call<JsonObject> getStagingToken(
+            @Field("username") String userName,
+            @Field("password") String password
+    );
+
+    @POST(APIUtil.LOGIN_PROD)
+    Call<ResponseBody> getProductionToken(
+            @Body RequestBody credentials
     );
 }

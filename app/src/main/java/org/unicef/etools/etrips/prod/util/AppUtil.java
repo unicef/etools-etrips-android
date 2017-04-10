@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.TypedArray;
 import android.support.annotation.NonNull;
-import android.text.TextUtils;
 import android.view.inputmethod.InputMethodManager;
 
 import org.unicef.etools.etrips.prod.R;
@@ -43,7 +42,6 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import io.realm.Realm;
@@ -137,7 +135,8 @@ public class AppUtil {
 
                 realm.delete(Trip.class);
                 realm.delete(ActionPoint.class);
-                realm.delete(LocalTrip.class);
+
+                realm.delete(UserStatic.class);
             }
         });
 
@@ -145,24 +144,6 @@ public class AppUtil {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         context.startActivity(intent);
         ((Activity) context).finish();
-    }
-
-    public static void addAssignedFullName(Realm realm, ActionPoint actionPoint) {
-        addAssignedFullName(realm, Collections.singletonList(actionPoint));
-    }
-
-    public static void addAssignedFullName(Realm realm, List<ActionPoint> actionPoints) {
-        for (ActionPoint object : actionPoints) {
-            final UserStatic user = realm.where(UserStatic.class)
-                    .equalTo("id", object.assignedBy)
-                    .findFirst();
-
-            if (user != null) {
-                String name = !TextUtils.isEmpty(user.getFullName())
-                        ? user.getFullName() : user.getUsername();
-                object.setAssignedByFullName(name);
-            }
-        }
     }
 
     public static String formatDouble(double d) {

@@ -22,6 +22,14 @@ public class TabFragmentAdapter extends FragmentStatePagerAdapter {
         mFragmentTitles.add(title);
     }
 
+    public void addFragment(Fragment fragment) {
+        mFragments.add(fragment);
+    }
+
+    public void addTitle(String title) {
+        mFragmentTitles.add(title);
+    }
+
     @Override
     public Fragment getItem(int position) {
         return mFragments.get(position);
@@ -36,4 +44,6 @@ public class TabFragmentAdapter extends FragmentStatePagerAdapter {
     public CharSequence getPageTitle(int position) {
         return mFragmentTitles.get(position);
     }
+
+
 }

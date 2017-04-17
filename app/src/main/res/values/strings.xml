@@ -71,6 +71,8 @@
     <!--tabs-->
     <string name="tab_text_trip">Trip</string>
     <string name="tab_text_report">Report</string>
+    <string name="tab_text_report_done">Report &#x2713;</string>
+    <string name="tab_text_report_draft">Report -</string>
     <string name="tab_text_action_points">Action Points</string>
 
     <!--screen and other strings-->

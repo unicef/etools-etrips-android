@@ -38,12 +38,14 @@ import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
 import org.unicef.etools.etrips.prod.io.rest.retrofit.RetrofitUtil;
 import org.unicef.etools.etrips.prod.ui.activity.ReportPhotoActivity;
+import org.unicef.etools.etrips.prod.ui.activity.TripActivity;
 import org.unicef.etools.etrips.prod.ui.adapter.ReportPhotoAdapter;
 import org.unicef.etools.etrips.prod.ui.fragment.BaseFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
 import org.unicef.etools.etrips.prod.util.FileUtil;
 import org.unicef.etools.etrips.prod.util.NetworkUtil;
+import org.unicef.etools.etrips.prod.util.OnTabTitleChangeListener;
 import org.unicef.etools.etrips.prod.util.Preference;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
@@ -337,6 +339,8 @@ public class ReportFragment extends BaseFragment implements View.OnClickListener
                     setData();
                     DialogManager.getInstance().dismissPreloader(getClass());
                 }
+                ((OnTabTitleChangeListener)getActivity())
+                        .onTabTitleChanged(TripActivity.Tab.REPORT, getString(R.string.tab_text_report_done));
                 break;
 
             case Event.EventType.Api.REPORT_FILES_UPLOADED:

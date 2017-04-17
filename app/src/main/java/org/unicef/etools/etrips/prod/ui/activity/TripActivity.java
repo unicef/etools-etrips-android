@@ -2,6 +2,7 @@ package org.unicef.etools.etrips.prod.ui.activity;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.MenuItem;
@@ -11,6 +12,7 @@ import com.google.common.eventbus.Subscribe;
 
 import org.unicef.etools.etrips.prod.BuildConfig;
 import org.unicef.etools.etrips.prod.R;
+import org.unicef.etools.etrips.prod.db.entity.trip.Trip;
 import org.unicef.etools.etrips.prod.io.bus.BusProvider;
 import org.unicef.etools.etrips.prod.io.bus.event.ApiEvent;
 import org.unicef.etools.etrips.prod.io.bus.event.Event;
@@ -22,13 +24,16 @@ import org.unicef.etools.etrips.prod.ui.fragment.trip.TripActionPointsFragment;
 import org.unicef.etools.etrips.prod.ui.fragment.trip.TripFragment;
 import org.unicef.etools.etrips.prod.util.AppUtil;
 import org.unicef.etools.etrips.prod.util.Constant;
+import org.unicef.etools.etrips.prod.util.OnTabTitleChangeListener;
 import org.unicef.etools.etrips.prod.util.manager.DialogManager;
 import org.unicef.etools.etrips.prod.util.manager.SnackBarManager;
 import org.unicef.etools.etrips.prod.util.receiver.NetworkStateReceiver;
 
+import io.realm.Realm;
 import retrofit2.Call;
 
-public class TripActivity extends BaseActivity implements View.OnClickListener {
+public class TripActivity extends BaseActivity implements View.OnClickListener,
+        OnTabTitleChangeListener {
 
     // ===========================================================
     // Constants
@@ -179,6 +184,18 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
     // Other Listeners, methods for/from Interfaces
     // ===========================================================
 
+    @Override
+    public void onTabTitleChanged(int tabPosition, String title) {
+        if (getTabLayout() == null) {
+            return;
+        }
+        TabLayout.Tab tab = getTabLayout().getTabAt(tabPosition);
+        if (tab == null) {
+            return;
+        }
+        tab.setText(title);
+    }
+
     // ===========================================================
     // Methods
     // ===========================================================
@@ -202,19 +219,43 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
         if (mViewPager != null && getTabLayout() != null) {
             TabFragmentAdapter fragmentAdapter = new TabFragmentAdapter(getSupportFragmentManager());
 
-            fragmentAdapter.addFragment(TripFragment.newInstance(mTripId),
-                    getString(R.string.tab_text_trip));
+            setupTabTitles(mTripId, fragmentAdapter);
 
-            fragmentAdapter.addFragment(ReportFragment.newInstance(mTripId),
-                    getString(R.string.tab_text_report));
+            fragmentAdapter.addFragment(TripFragment.newInstance(mTripId));
 
-            fragmentAdapter.addFragment(TripActionPointsFragment.newInstance(mTripId),
-                    getString(R.string.tab_text_action_points));
+            fragmentAdapter.addFragment(ReportFragment.newInstance(mTripId));
+
+            fragmentAdapter.addFragment(TripActionPointsFragment.newInstance(mTripId));
 
             mViewPager.setOffscreenPageLimit(OFFSCREEN_PAGE_LIMIT);
             mViewPager.setAdapter(fragmentAdapter);
             getTabLayout().setupWithViewPager(mViewPager);
         }
+    }
+
+    private void setupTabTitles(long tripId, TabFragmentAdapter adapter) {
+
+        // TRIP tab
+        adapter.addTitle(getString(R.string.tab_text_trip));
+
+        // REPORT tab
+        Trip trip = Realm.getDefaultInstance().where(Trip.class).equalTo("id", tripId).findFirst();
+        if (trip == null || !trip.isValid()) {
+            adapter.addTitle(getString(R.string.tab_text_report));
+        } else {
+            if (trip.getReport() == null || trip.getReport().isEmpty()) {
+                adapter.addTitle(getString(R.string.tab_text_report));
+            } else {
+                if (trip.isNotSynced()) {
+                    adapter.addTitle(getString(R.string.tab_text_report_draft));
+                } else {
+                    adapter.addTitle(getString(R.string.tab_text_report_done));
+                }
+            }
+        }
+
+        // ACTION POINTS tab
+        adapter.addTitle(getString(R.string.tab_text_action_points));
     }
 
     private void loadTripFromServer(boolean showPreloader) {
@@ -228,5 +269,11 @@ public class TripActivity extends BaseActivity implements View.OnClickListener {
     // ===========================================================
     // Inner and Anonymous Classes
     // ===========================================================
+
+    public static class Tab {
+        public static final int TRIP = 0;
+        public static final int REPORT = 1;
+        public static final int ACTION_POINTS = 2;
+    }
 
 }

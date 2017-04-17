@@ -35,6 +35,7 @@
 -dontwarn okio.**
 -dontwarn retrofit2.**
 -dontwarn okhttp3.**
+-dontwarn io.realm.**
 
 -dontwarn java.lang.ClassValue
 -dontwarn com.google.j2objc.annotations.Weak
@@ -68,6 +69,8 @@
 -keep class com.squareup.** { *; }
 -keep class com.github.** { *; }
 -keep class okhttp3.** { *; }
+-keep class io.realm.** { *; }
+
 -keep interface okhttp3.** { *; }
 
 -keep class android.support.** { *; }
